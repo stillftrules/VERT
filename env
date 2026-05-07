@@ -1,0 +1,18 @@
+# ============================================
+# VERT - Environment Variables
+# Copy this to .env and fill in your values
+# NEVER commit .env to git
+# ============================================
+
+# Supabase
+REACT_APP_SUPABASE_URL=https://vfkmulgxusncmsnuyptw.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZma211bGd4dXNuY21zbnV5cHR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDgzMzAsImV4cCI6MjA5MzYyNDMzMH0.m3KiG53Y-d8bNGWukPul7kSMWzbT0Kc3MhfWGO2iJUo
+
+# Resend (email delivery)
+REACT_APP_RESEND_API_KEY=re_WqrompEo_6591K5yL6xWURgtUjax4NJ89
+REACT_APP_RESEND_FROM_EMAIL=info@banqo.xyz
+
+# Vonage (SMS delivery)
+REACT_APP_VONAGE_API_KEY=402fc67f
+REACT_APP_VONAGE_API_SECRET=FOZw6V@kNmmDm
+REACT_APP_VONAGE_FROM_NUMBER=5733853020
