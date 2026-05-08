@@ -288,26 +288,42 @@ function Header() {
 }
 
 // Pulsing amber glow username component
+// CLIENT username — indigo glow (used for client @handles)
 export function GlowUsername({ username, size = 17, showAt = true }) {
   return (
     <div style={{ display:'inline-flex', alignItems:'center', position:'relative' }}>
       <style>{`
-        @keyframes indigoPulse {
-          0%, 100% { text-shadow: 0 0 6px rgba(245,197,24,0.3), 0 0 12px rgba(245,197,24,0.15); }
-          50% { text-shadow: 0 0 12px rgba(245,197,24,0.7), 0 0 24px rgba(245,197,24,0.4), 0 0 40px rgba(245,197,24,0.2); }
+        @keyframes bluePulse {
+          0%, 100% { text-shadow: 0 0 6px rgba(29,155,240,0.5), 0 0 14px rgba(29,155,240,0.25); }
+          50% { text-shadow: 0 0 12px rgba(29,155,240,0.9), 0 0 28px rgba(29,155,240,0.5), 0 0 48px rgba(29,155,240,0.25); }
         }
         .glow-username {
-          animation: indigoPulse 2.8s ease-in-out infinite;
-          color: #818cf8;
+          animation: bluePulse 2.8s ease-in-out infinite;
+          color: #1d9bf0;
           font-family: 'DM Mono', monospace;
-          font-weight: 600;
-          letter-spacing: 0.02em;
+          font-weight: 700;
+          letter-spacing: 0.04em;
         }
       `}</style>
       <span className="glow-username" style={{ fontSize: size }}>
         {showAt ? '@' : ''}{username}
       </span>
     </div>
+  )
+}
+
+// USER username — soft cyan, no glow (used for the person sending on behalf of client)
+export function UserUsername({ username, size = 17, showAt = true }) {
+  return (
+    <span style={{
+      fontSize: size,
+      color: '#7dd3a8',
+      fontFamily: "'DM Mono', monospace",
+      fontWeight: 500,
+      letterSpacing: '0.03em',
+    }}>
+      {showAt ? '@' : ''}{username}
+    </span>
   )
 }
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
-import { GlowUsername } from './PublicLanding'
+import { GlowUsername, UserUsername } from './PublicLanding'
 import { ClientStoriesRow } from './InboxScreen'
 
 const FONT = "'Clarity City','DM Mono',sans-serif"
@@ -148,7 +148,7 @@ export default function ChatScreen({ onEnterCode }) {
       </div>
 
       <div style={{ ...s.threadBanner, fontFamily: MONO }}>
-        {session.user.full_name} · sending as @{myUsername}
+        <span style={{color:'#7dd3a8', fontFamily:"'DM Mono',monospace", fontSize:12}}>{session.user.full_name}</span><span style={{color:'#555', fontSize:12}}> · sending as </span><GlowUsername username={myUsername} size={12} />
       </div>
 
       <div style={s.messages}>
