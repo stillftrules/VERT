@@ -164,7 +164,7 @@ export default function AdminDashboard() {
     setDispatching(true); setDispatchResult([])
     const today = new Date()
     const [h, m] = expireTime.split(':')
-    const expiresAt = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(h), parseInt(m))
+    const expiresAt = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), parseInt(h) + 4, parseInt(m)))
     const results = []
     for (const userId of selectedUsers) {
       const user = clientUsers.find(u => u.id === userId)
