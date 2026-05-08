@@ -221,7 +221,7 @@ export default function PublicLanding({ onEnterCode }) {
                 {availText(signupUsernameAvail)}
               </div>
             )}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))', gap:12, marginTop:14 }}>
               <div>
                 <div style={{ ...s.formLabel, fontFamily: MONO }}>first name</div>
                 <input style={{ ...s.formInput, fontFamily: FONT }} placeholder="Phil" value={signupForm.firstName} onChange={e => setSignupForm(p => ({...p, firstName: e.target.value}))} />
@@ -328,10 +328,10 @@ export function UserUsername({ username, size = 17, showAt = true }) {
 }
 
 const s = {
-  wrap: { background:'transparent', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#ffffff', width:'100%', padding:'12px 10px', gap:8, boxSizing:'border-box' },
-  header: { padding:'18px 20px 14px', borderBottom:`0.5px solid ${BORDER}`, display:'flex', alignItems:'center', flexShrink:0 },
+  wrap: { background:'transparent', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#ffffff', width:'100%', padding:'10px 8px', gap:8, boxSizing:'border-box', overflowX:'hidden' },
+  header: { padding:'14px 16px', borderBottom:`0.5px solid ${BORDER}`, display:'flex', alignItems:'center', flexShrink:0 },
   logoRow: { display:'flex', alignItems:'center', gap:10 },
-  body: { flex:1, padding:'24px 20px', display:'flex', flexDirection:'column', gap:14 },
+  body: { flex:1, padding:'16px 0', display:'flex', flexDirection:'column', gap:12 },
   heroSection: { marginBottom:4 },
   heroSub: { fontSize:15, color:'#888aa0', lineHeight:1.6 },
   enterCodeBig: { background:'#1d9bf0', border:'none', color:'#111113', fontSize:17, fontWeight:700, padding:'18px', borderRadius:14, cursor:'pointer', letterSpacing:'0.15em', width:'100%', display:'block' },
@@ -353,20 +353,20 @@ const s = {
   resultsList: { display:'flex', flexDirection:'column', gap:10 },
   resultItem: { background:'rgba(30,30,34,0.88)', backdropFilter:'blur(20px)', border:'0.5px solid rgba(255,255,255,0.08)', borderRadius:18, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer' },
   resultName: { fontSize:13, color:'#888aa0', fontFamily: MONO, marginTop:3 },
-  formCard: { background:'rgba(30,30,34,0.88)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', border:'0.5px solid rgba(255,255,255,0.08)', borderRadius:20, padding:24 },
+  formCard: { background:'rgba(30,30,34,0.88)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', border:'0.5px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'16px' },
   formLabel: { fontSize:13, color:'#888aa0', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 },
-  formInput: { background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, color:'#ffffff', fontSize:18, fontWeight:300, padding:'16px 18px', width:'100%', outline:'none', marginBottom:16, display:'block', boxSizing:'border-box', caretColor:'#1d9bf0' },
-  formTextarea: { background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, color:'#ffffff', fontSize:18, fontWeight:300, padding:'16px 18px', width:'100%', outline:'none', marginBottom:16, display:'block', boxSizing:'border-box', resize:'none', lineHeight:1.6, caretColor:'#1d9bf0' },
+  formInput: { background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, color:'#ffffff', fontSize:18, fontWeight:300, padding:'14px 16px', width:'100%', outline:'none', marginBottom:14, display:'block', boxSizing:'border-box', caretColor:'#1d9bf0', WebkitAppearance:'none' },
+  formTextarea: { background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, color:'#ffffff', fontSize:18, fontWeight:300, padding:'14px 16px', width:'100%', outline:'none', marginBottom:14, display:'block', boxSizing:'border-box', resize:'none', lineHeight:1.6, caretColor:'#1d9bf0', WebkitAppearance:'none' },
   usernameRow: { display:'flex', alignItems:'center', background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, marginBottom:8, overflow:'hidden' },
   atSign: { padding:'11px 8px 11px 14px', color:'#818cf8', fontSize:16, fontWeight:700, flexShrink:0, fontFamily:"'DM Mono',monospace" },
   usernameInput: { border:'none', borderRadius:0, marginBottom:0, background:'transparent', paddingLeft:4 },
   availMsg: { fontSize:11, marginBottom:8, fontWeight:500 },
-  idRow: { display:'flex', alignItems:'center', gap:6, marginBottom:6 },
-  idBox: { width:52, height:60, background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, color:'#ffffff', fontSize:22, fontWeight:700, textAlign:'center', outline:'none', padding:0 },
+  idRow: { display:'flex', alignItems:'center', gap:4, marginBottom:6, width:'100%', boxSizing:'border-box' },
+  idBox: { flex:1, minWidth:0, height:58, background:'rgba(30,30,34,0.88)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:14, color:'#ffffff', fontSize:20, fontWeight:700, textAlign:'center', outline:'none', padding:0, boxSizing:'border-box' },
   idDash: { color:'#444', fontSize:18, fontWeight:300, flexShrink:0 },
   idHint: { fontSize:10, color:'#444', marginBottom:4 },
   primaryBtn: { background:'#1d9bf0', border:'none', color:'#ffffff', fontSize:20, fontWeight:700, padding:'18px', borderRadius:16, cursor:'pointer', width:'100%', display:'block', marginTop:8 },
-  centeredBody: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 32px', textAlign:'center', gap:16 },
+  centeredBody: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'32px 16px', textAlign:'center', gap:16 },
   successIcon: { width:64, height:64, borderRadius:'50%', background:'#1a1c3a', border:'2px solid #818cf8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, color:'#818cf8' },
   successTitle: { fontSize:24, fontWeight:700, color:'#ffffff' },
   successSub: { fontSize:14, color:'#888aa0', lineHeight:1.6 },

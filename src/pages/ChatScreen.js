@@ -127,7 +127,7 @@ export default function ChatScreen({ onEnterCode }) {
   function formatTime(ts) { return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) }
 
   return (
-    <div style={{ background:'transparent', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', width:'100%', fontFamily: FONT, padding:'12px 10px 0', gap:8, boxSizing:'border-box' }}>
+    <div style={{ background:'transparent', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', width:'100%', fontFamily: FONT, padding:'12px 10px 0', gap:8, boxSizing:'border-box', overflowX:'hidden' }}>
       <style>{`
         ::placeholder { color: rgba(255,255,255,0.2) !important; }
         ::-webkit-scrollbar { display: none; }
