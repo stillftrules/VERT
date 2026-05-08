@@ -7,9 +7,10 @@ import { ClientStoriesRow } from './InboxScreen'
 
 const FONT = "'Clarity City','DM Mono',sans-serif"
 const MONO = "'DM Mono',monospace"
-const BG = '#0d0f1a'
-const CARD = '#131628'
-const BORDER = '#1e2240'
+const BG = '#111113'
+const CARD = '#1c1c1e'
+const BORDER = '#2a2a2e'
+const BLUE   = '#1d9bf0'
 
 export default function ChatScreen({ onEnterCode }) {
   const { contactUsername } = useParams()
