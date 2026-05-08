@@ -62,7 +62,7 @@ export default function LoginScreen({ onSuccess, onGoBack }) {
         <div style={s.logoMark}>
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
             <rect width="36" height="36" rx="10" fill="#1a1a1e"/>
-            <path d="M8 12C8 10.3431 9.34315 9 11 9H25C26.6569 9 28 10.3431 28 12V20C28 21.6569 26.6569 23 25 23H20L15 27V23H11C9.34315 23 8 21.6569 8 20V12Z" fill="#F5C518"/>
+            <path d="M8 12C8 10.3431 9.34315 9 11 9H25C26.6569 9 28 10.3431 28 12V20C28 21.6569 26.6569 23 25 23H20L15 27V23H11C9.34315 23 8 21.6569 8 20V12Z" fill="#1d9bf0"/>
           </svg>
         </div>
         <div style={{ ...s.appName, fontFamily: MONO }}>BANQO</div>
@@ -129,24 +129,24 @@ export default function LoginScreen({ onSuccess, onGoBack }) {
 }
 
 const s = {
-  wrap: { background:'#111114', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#ffffff', maxWidth:420, margin:'0 auto', paddingBottom:40 },
+  wrap: { background:'transparent', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#ffffff', width:'100%', padding:'12px 10px', gap:8, boxSizing:'border-box' },
   topSection: { padding:'60px 32px 32px', display:'flex', flexDirection:'column', alignItems:'flex-start' },
   logoMark: { marginBottom:24 },
-  appName: { fontSize:13, fontWeight:600, color:'#F5C518', letterSpacing:'0.2em', marginBottom:12 },
+  appName: { fontSize:13, fontWeight:600, color:'#1d9bf0', letterSpacing:'0.2em', marginBottom:12 },
   headline: { fontSize:30, fontWeight:700, color:'#ffffff', marginBottom:8, lineHeight:1.2 },
   subline: { fontSize:15, color:'#888aa0', lineHeight:1.6, whiteSpace:'pre-line' },
   codeSection: { padding:'24px 32px 32px' },
   boxesRow: { display:'flex', gap:14 },
-  codeBox: { flex:1, height:64, borderRadius:14, background:'#1a1a1e', display:'flex', alignItems:'center', justifyContent:'center', border:'1.5px solid #252528', transition:'all 0.15s' },
-  codeBoxFilled: { border:'1.5px solid #F5C518' },
+  codeBox: { flex:1, height:64, borderRadius:18, background:'rgba(30,30,34,0.8)', backdropFilter:'blur(20px)', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid rgba(255,255,255,0.08)', transition:'all 0.15s' },
+  codeBoxFilled: { border:'1.5px solid #1d9bf0' },
   codeBoxError: { border:'1.5px solid #e24b4a' },
   codeDigit: { fontSize:28, color:'#252528', fontWeight:600 },
-  codeDigitFilled: { color:'#F5C518' },
+  codeDigitFilled: { color:'#1d9bf0' },
   keypadSection: { padding:'0 24px' },
   keypad: { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14 },
-  key: { background:'#1a1a1e', borderRadius:14, padding:'18px 8px', display:'flex', flexDirection:'column', alignItems:'center', cursor:'pointer', userSelect:'none', border:'0.5px solid #252528', transition:'box-shadow 0.1s' },
+  key: { background:'rgba(30,30,34,0.8)', backdropFilter:'blur(20px)', borderRadius:18, padding:'18px 8px', display:'flex', flexDirection:'column', alignItems:'center', cursor:'pointer', userSelect:'none', border:'0.5px solid rgba(255,255,255,0.08)', transition:'box-shadow 0.1s' },
   keyDel: { display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:'18px 8px', borderRadius:14 },
   keyNum: { fontSize:26, fontWeight:600, color:'#ffffff', lineHeight:1 },
   keyLetters: { fontSize:10, color:'#888aa0', letterSpacing:'0.12em', marginTop:5 },
-  backBtn: { background:'none', border:'none', color:'#F5C518', fontSize:14, cursor:'pointer', marginTop:28, width:'100%', textAlign:'center', padding:8 }
+  backBtn: { background:'none', border:'none', color:'#1d9bf0', fontSize:14, cursor:'pointer', marginTop:28, width:'100%', textAlign:'center', padding:8 }
 }

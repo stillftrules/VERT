@@ -2,15 +2,22 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
-import { GlowUsername, UserUsername } from './PublicLanding'
-import { ClientStoriesRow } from './InboxScreen'
+import { GlowClient, ClientStoriesRow } from './InboxScreen'
 
 const FONT = "'Clarity City','DM Mono',sans-serif"
 const MONO = "'DM Mono',monospace"
-const BG = '#111113'
-const CARD = '#1c1c1e'
+const BG     = '#161618'
+const CARD   = 'rgba(36,36,40,0.82)'
 const BORDER = '#2a2a2e'
 const BLUE   = '#1d9bf0'
+
+const GLASS = {
+  background: 'rgba(36,36,40,0.82)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '0.5px solid rgba(255,255,255,0.07)',
+  borderRadius: 20,
+}
 
 export default function ChatScreen({ onEnterCode }) {
   const { contactUsername } = useParams()
@@ -95,8 +102,7 @@ export default function ChatScreen({ onEnterCode }) {
 
   function handleCopy(id, content) {
     navigator.clipboard?.writeText(content).then(() => {
-      setCopiedId(id)
-      setTimeout(() => setCopiedId(null), 1500)
+      setCopiedId(id); setTimeout(() => setCopiedId(null), 1500)
     })
   }
 
@@ -120,55 +126,43 @@ export default function ChatScreen({ onEnterCode }) {
 
   function formatTime(ts) { return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) }
 
-  function handleSwitch(username) {
-    switchClient(username)
-    navigate(`/chat/${contactUsername}`)
-  }
-
   return (
-    <div style={{ ...s.wrap, fontFamily: FONT }}>
-      <style>{`::placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; }`}</style>
+    <div style={{ background:'transparent', minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', width:'100%', fontFamily: FONT, padding:'12px 10px 0', gap:8, boxSizing:'border-box' }}>
+      <style>{`
+        ::placeholder { color: rgba(255,255,255,0.2) !important; }
+        ::-webkit-scrollbar { display: none; }
+        @keyframes senderPulse {
+          0%,100% { text-shadow: 0 0 6px rgba(29,155,240,0.5); opacity:1; }
+          50% { text-shadow: 0 0 16px rgba(29,155,240,1), 0 0 40px rgba(29,155,240,0.4); opacity:0.8; }
+        }
+        @keyframes receiverGlow {
+          0%,100% { text-shadow: 0 0 6px rgba(96,200,120,0.4); }
+          50% { text-shadow: 0 0 14px rgba(96,200,120,0.9), 0 0 32px rgba(96,200,120,0.3); }
+        }
+      `}</style>
 
-      {/* Sidebar overlay */}
+      {/* Sidebar */}
       {showSidebar && (
-        <div style={s.sideOverlay} onClick={() => setShowSidebar(false)}>
-          <div style={s.sidebar} onClick={e => e.stopPropagation()}>
-            <div style={{ padding:'20px 16px 12px', borderBottom:`1px solid ${BORDER}` }}>
-              <div style={{ fontSize:11, color:'#555', fontFamily: MONO, letterSpacing:'0.12em', textTransform:'uppercase' }}>switch client</div>
-            </div>
+        <div style={{ position:'fixed', inset:0, zIndex:100, background:'rgba(0,0,0,0.7)', display:'flex' }}
+          onClick={() => setShowSidebar(false)}>
+          <div style={{ width:200, height:'100%', ...GLASS, borderRadius:0, borderRight:`0.5px solid ${BORDER}`, display:'flex', flexDirection:'column', overflowY:'auto' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'20px 16px 10px', fontSize:10, color:'#444', fontFamily: MONO, letterSpacing:'0.12em', textTransform:'uppercase' }}>switch client</div>
             {sessionList.map(s2 => {
               const isActive = s2.client.username === myUsername
               const isExpired = new Date(s2.expiresAt) < new Date()
               return (
                 <div key={s2.client.username}
-                  style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px',
+                  style={{ padding:'12px 16px', borderLeft: isActive ? `2px solid ${BLUE}` : '2px solid transparent',
                     background: isActive ? 'rgba(29,155,240,0.08)' : 'transparent',
-                    borderLeft: isActive ? '3px solid #1d9bf0' : '3px solid transparent',
-                    cursor: isExpired ? 'not-allowed' : 'pointer',
-                    opacity: isExpired ? 0.4 : 1 }}
-                  onClick={() => {
-                    if (!isExpired) {
-                      switchClient(s2.client.username)
-                      setShowSidebar(false)
-                      navigate(`/chat/${contactUsername}`)
-                    }
-                  }}>
-                  <div style={{ width:36, height:36, borderRadius:10, background: isActive ? '#0f2030' : '#1a1c2e',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    border: isActive ? '1.5px solid #1d9bf0' : `1px solid ${BORDER}` }}>
-                    <span style={{ color: isActive ? '#1d9bf0' : '#888aa0', fontSize:13, fontWeight:700, fontFamily: MONO }}>
-                      {s2.client.username.slice(0,2).toUpperCase()}
-                    </span>
+                    cursor: isExpired ? 'not-allowed' : 'pointer', opacity: isExpired ? 0.4 : 1 }}
+                  onClick={() => { if (!isExpired) { switchClient(s2.client.username); setShowSidebar(false); navigate(`/chat/${contactUsername}`) } }}>
+                  <div style={{ color: isActive ? BLUE : '#aaa', fontSize:13, fontWeight:700, fontFamily: MONO, textTransform:'uppercase' }}>
+                    @{s2.client.username}
                   </div>
-                  <div>
-                    <div style={{ color: isActive ? '#1d9bf0' : '#ffffff', fontSize:14, fontWeight:600, fontFamily: MONO }}>
-                      @{s2.client.username}
-                    </div>
-                    <div style={{ color:'#555', fontSize:11, fontFamily: MONO, marginTop:2 }}>
-                      {isExpired ? 'expired' : s2.permission?.replace('_', ' ')}
-                    </div>
+                  <div style={{ color:'#444', fontSize:10, fontFamily: MONO, marginTop:2 }}>
+                    {isExpired ? 'expired' : s2.permission?.replace('_',' ')}
                   </div>
-                  {isActive && <div style={{ marginLeft:'auto', width:7, height:7, borderRadius:'50%', background:'#1d9bf0' }} />}
                 </div>
               )
             })}
@@ -176,68 +170,101 @@ export default function ChatScreen({ onEnterCode }) {
         </div>
       )}
 
-      {/* Header */}
-      <div style={s.header}>
-        <button style={s.backBtn} onClick={() => navigate('/inbox')}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      {/* Back button — its own block */}
+      <div style={{ ...GLASS, padding:'10px 16px', display:'flex', alignItems:'center', flexShrink:0 }}>
+        <button style={{ background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:8, color:'#888', padding:0 }}
+          onClick={() => navigate('/inbox')}>
+          {/* Chevron left — distinct from the → arrow between usernames */}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          <span style={{ fontSize:12, fontFamily: MONO, color:'#666', letterSpacing:'0.06em' }}>BACK</span>
         </button>
-        <div style={s.headerInfo}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, fontFamily: MONO }}>
-            <span style={{ color:'#1d9bf0', fontSize:15, fontWeight:700 }}>@{myUsername}</span>
-            <span style={{ color:'#444', fontSize:15 }}>→</span>
-            <span style={{ color:'#1d9bf0', fontSize:15, fontWeight:700 }}>@{otherUsername}</span>
-          </div>
-        </div>
         {sessionList.length > 1 && (
-          <button style={s.sidebarBtn} onClick={() => setShowSidebar(v => !v)}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="3" width="7" height="18" rx="1"/><path d="M14 7h7M14 12h7M14 17h7"/>
+          <button style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#555', padding:4 }}
+            onClick={() => setShowSidebar(v => !v)}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
         )}
       </div>
 
-      <div style={s.messages}>
-        {messages.length === 0 && <div style={{ ...s.noMessages, fontFamily: MONO }}>no messages yet — say hello!</div>}
+      {/* Username header — centered, animated data flow */}
+      <div style={{ ...GLASS, padding:'16px 24px', display:'flex', alignItems:'center', justifyContent:'center', gap:0, flexShrink:0 }}>
+        <style>{`
+          @keyframes dot1 { 0%,100%{opacity:0;transform:translateX(0)} 20%{opacity:1} 60%{opacity:0;transform:translateX(18px)} }
+          @keyframes dot2 { 0%,100%{opacity:0;transform:translateX(0)} 35%{opacity:1} 75%{opacity:0;transform:translateX(18px)} }
+          @keyframes dot3 { 0%,100%{opacity:0;transform:translateX(0)} 50%{opacity:1} 90%{opacity:0;transform:translateX(18px)} }
+        `}</style>
+        {/* Sender — glowing blue */}
+        <span style={{ fontSize:17, fontWeight:800, fontFamily: MONO, textTransform:'uppercase', letterSpacing:'0.06em', animation:'senderPulse 3s ease-in-out infinite', color: BLUE, flexShrink:0 }}>
+          @{myUsername}
+        </span>
+        {/* Animated data flow dots */}
+        <div style={{ display:'flex', alignItems:'center', gap:5, margin:'0 24px', position:'relative', width:60 }}>
+          <span style={{ width:6, height:6, borderRadius:'50%', background: BLUE, position:'absolute', left:0, animation:'dot1 1.6s ease-in-out infinite' }} />
+          <span style={{ width:6, height:6, borderRadius:'50%', background: BLUE, position:'absolute', left:0, animation:'dot2 1.6s ease-in-out infinite' }} />
+          <span style={{ width:6, height:6, borderRadius:'50%', background: BLUE, position:'absolute', left:0, animation:'dot3 1.6s ease-in-out infinite' }} />
+        </div>
+        {/* Receiver — plain white, no glow */}
+        <span style={{ fontSize:17, fontWeight:800, fontFamily: MONO, textTransform:'uppercase', letterSpacing:'0.06em', color:'#ffffff', flexShrink:0 }}>
+          @{otherUsername}
+        </span>
+      </div>
+
+      {/* Messages */}
+      <div style={{ ...GLASS, flex:1, overflowY:'auto', padding:'16px', display:'flex', flexDirection:'column', gap:10 }}>
+        {messages.length === 0 && <div style={{ textAlign:'center', color:'#444', fontSize:13, marginTop:40, fontFamily: MONO }}>no messages yet — say hello!</div>}
         {messages.map(msg => {
           const mine = isMine(msg)
           const isCopied = copiedId === msg.id
+          // Bubble color matches the sender's username color
+          const bubbleColor = mine ? 'rgba(29,155,240,0.25)' : 'rgba(180,180,200,0.12)'
+          const textColor = '#ffffff'
           return (
-            <div key={msg.id} style={{ ...s.msgRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth:'78%' }}>
-
+            <div key={msg.id} style={{ display:'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+              <div style={{ maxWidth:'76%' }}>
                 {editingId === msg.id ? (
-                  <div style={s.editWrap}>
-                    <input style={{ ...s.editInput, fontFamily: FONT }} value={editContent}
-                      onChange={e => setEditContent(e.target.value)}
+                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    <input style={{ background:'rgba(36,36,40,0.9)', border:`1px solid ${BLUE}`, borderRadius:10, color:'#fff', padding:'8px 12px', fontSize:14, outline:'none', width:180, fontFamily: MONO }}
+                      value={editContent} onChange={e => setEditContent(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleEdit(msg.id)} autoFocus />
-                    <button style={{ ...s.editSave, fontFamily: MONO }} onClick={() => handleEdit(msg.id)}>save</button>
-                    <button style={{ ...s.editCancel, fontFamily: MONO }} onClick={() => setEditingId(null)}>cancel</button>
+                    <button style={{ background: BLUE, border:'none', color:'#fff', fontSize:11, padding:'5px 10px', borderRadius:6, cursor:'pointer', fontFamily: MONO }} onClick={() => handleEdit(msg.id)}>save</button>
+                    <button style={{ background:'none', border:'none', color:'#555', fontSize:11, cursor:'pointer', fontFamily: MONO }} onClick={() => setEditingId(null)}>cancel</button>
                   </div>
                 ) : (
                   <div style={{ display:'flex', alignItems:'flex-end', gap:6, flexDirection: mine ? 'row-reverse' : 'row' }}>
-                    <div style={{ ...s.bubble, ...(mine ? s.bubbleMine : s.bubbleTheirs) }}
+                    <div style={{
+                      padding:'11px 15px', borderRadius:18,
+                      borderBottomRightRadius: mine ? 4 : 18,
+                      borderBottomLeftRadius: mine ? 18 : 4,
+                      background: bubbleColor,
+                      border: mine ? '1px solid rgba(29,155,240,0.4)' : '1px solid rgba(255,255,255,0.08)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      color: textColor,
+                      fontSize:15, lineHeight:1.6, fontFamily: FONT,
+                    }}
                       onDoubleClick={() => { if (mine) { setEditingId(msg.id); setEditContent(msg.content) } }}>
                       {msg.content}
                     </div>
-                    {/* Copy button */}
-                    <button style={s.copyBtn} onClick={() => handleCopy(msg.id, msg.content)} title="Copy message">
-                      {isCopied ? (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                      ) : (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                      )}
+                    <button style={{ background:'none', border:'none', cursor:'pointer', padding:4, opacity:0.5, flexShrink:0, marginBottom:4 }}
+                      onClick={() => handleCopy(msg.id, msg.content)}>
+                      {isCopied
+                        ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4caf50" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      }
                     </button>
                   </div>
                 )}
-                <div style={{ ...s.msgMeta, justifyContent: mine ? 'flex-end' : 'flex-start', fontFamily: MONO }}>
-                  <span style={s.msgTime}>{formatTime(msg.created_at)}</span>
-                  {msg.is_edited && <span style={s.msgEdited}>edited</span>}
-                  {msg.is_transcribed && <span>🎤</span>}
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:3, padding:'0 4px', justifyContent: mine ? 'flex-end' : 'flex-start', fontFamily: MONO }}>
+                  <span style={{ fontSize:10, color:'#444' }}>{formatTime(msg.created_at)}</span>
+                  {msg.is_edited && <span style={{ fontSize:10, color:'#444' }}>edited</span>}
                   {mine && !editingId && (
                     <>
-                      <span style={s.actionLink} onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}>edit</span>
-                      <span style={{ ...s.actionLink, color:'#e24b4a' }} onClick={() => handleDelete(msg.id)}>delete</span>
+                      <span style={{ fontSize:10, color: BLUE, cursor:'pointer' }} onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}>edit</span>
+                      <span style={{ fontSize:10, color:'#e24b4a', cursor:'pointer' }} onClick={() => handleDelete(msg.id)}>delete</span>
                     </>
                   )}
                 </div>
@@ -248,63 +275,33 @@ export default function ChatScreen({ onEnterCode }) {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Input */}
       {canSend ? (
-        <div style={s.inputRow}>
-          <div style={s.inputWrap}>
-            <textarea style={{ ...s.input, fontFamily: FONT }} placeholder="message..." value={input} rows={1}
+        <div style={{ ...GLASS, padding:'10px 16px 20px', display:'flex', alignItems:'flex-end', gap:10, flexShrink:0, marginBottom:12 }}>
+          <div style={{ flex:1, background:'rgba(255,255,255,0.05)', border:`0.5px solid ${BORDER}`, borderRadius:22, display:'flex', alignItems:'center', padding:'9px 14px', gap:8 }}>
+            <textarea style={{ flex:1, background:'none', border:'none', outline:'none', color:'#fff', fontSize:15, fontWeight:300, resize:'none', maxHeight:100, lineHeight:1.5, caretColor: BLUE, fontFamily: FONT }}
+              placeholder="message..." value={input} rows={1}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }} />
             {input.length > 0 && (
-              <button style={s.clearBtn} onClick={() => setInput('')}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888aa0" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              <button style={{ background:'none', border:'none', cursor:'pointer', display:'flex', padding:'0 2px' }} onClick={() => setInput('')}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             )}
-            <button style={{ ...s.micBtn, color: recording ? '#e24b4a' : '#888aa0' }} onClick={handleMic}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <button style={{ background:'none', border:'none', cursor:'pointer', display:'flex', color: recording ? '#e24b4a' : '#555' }} onClick={handleMic}>
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7M12 17v4M8 21h8"/>
               </svg>
             </button>
           </div>
-          <button style={s.sendBtn} onClick={() => handleSend()}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" strokeWidth="2.5" strokeLinecap="round"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+          <button style={{ width:44, height:44, borderRadius:'50%', background: BLUE, border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}
+            onClick={() => handleSend()}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
           </button>
         </div>
       ) : (
-        <div style={{ ...s.readOnlyBar, fontFamily: MONO }}>read only · you cannot send messages</div>
+        <div style={{ padding:'14px 20px', borderTop:`0.5px solid ${BORDER}`, textAlign:'center', fontSize:12, color:'#444', fontFamily: MONO }}>read only · you cannot send messages</div>
       )}
     </div>
   )
-}
-
-const s = {
-  sideOverlay: { position:'fixed', inset:0, zIndex:100, background:'rgba(0,0,0,0.6)', display:'flex' },
-  sidebar: { width:220, height:'100%', background:'#0d0f1a', borderRight:`1px solid ${BORDER}`, display:'flex', flexDirection:'column', overflowY:'auto' },
-  sidebarBtn: { marginLeft:'auto', background:'none', border:'none', color:'#888aa0', cursor:'pointer', padding:6, display:'flex', alignItems:'center' },
-  wrap: { background: BG, minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', maxWidth:480, margin:'0 auto' },
-  header: { padding:'14px 20px 12px', borderBottom:`0.5px solid ${BORDER}`, display:'flex', alignItems:'center', gap:14, flexShrink:0 },
-  backBtn: { background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', flexShrink:0 },
-  headerInfo: { flex:1 },
-  threadBanner: { background:'#1a1600', borderBottom:'0.5px solid #F5C51820', padding:'6px 20px', fontSize:11, color:'#F5C51880', flexShrink:0 },
-  messages: { flex:1, overflowY:'auto', padding:'16px 20px', display:'flex', flexDirection:'column', gap:12 },
-  noMessages: { textAlign:'center', color:'#444', fontSize:13, marginTop:40 },
-  msgRow: { display:'flex', gap:8, alignItems:'flex-end' },
-  bubble: { padding:'11px 15px', borderRadius:18, fontSize:15, lineHeight:1.6, fontFamily: FONT },
-  bubbleMine: { background:'#F5C518', color:'#111114', borderBottomRightRadius:4, fontWeight:500 },
-  bubbleTheirs: { background: CARD, color:'#fff', border:`0.5px solid ${BORDER}`, borderBottomLeftRadius:4 },
-  copyBtn: { background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', alignItems:'center', opacity:0.6, flexShrink:0, marginBottom:4 },
-  msgMeta: { display:'flex', alignItems:'center', gap:8, marginTop:4, padding:'0 4px' },
-  msgTime: { fontSize:10, color:'#444' },
-  msgEdited: { fontSize:10, color:'#444' },
-  actionLink: { fontSize:10, color:'#F5C518', cursor:'pointer' },
-  editWrap: { display:'flex', gap:8, alignItems:'center' },
-  editInput: { background: CARD, border:`1px solid #F5C518`, borderRadius:10, color:'#fff', padding:'8px 12px', fontSize:14, outline:'none', width:200 },
-  editSave: { background:'#F5C518', border:'none', color:'#111114', fontSize:11, padding:'5px 12px', borderRadius:6, cursor:'pointer', fontWeight:600 },
-  editCancel: { background:'none', border:'none', color:'#888aa0', fontSize:11, cursor:'pointer' },
-  inputRow: { padding:'10px 16px 22px', borderTop:`0.5px solid ${BORDER}`, display:'flex', alignItems:'flex-end', gap:10, flexShrink:0 },
-  inputWrap: { flex:1, background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:22, display:'flex', alignItems:'center', padding:'9px 14px', gap:8 },
-  input: { flex:1, background:'none', border:'none', outline:'none', color:'#fff', fontSize:15, fontWeight:200, resize:'none', maxHeight:100, lineHeight:1.5, caretColor:'#F5C518' },
-  clearBtn: { background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', padding:'0 2px', flexShrink:0 },
-  micBtn: { background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', flexShrink:0 },
-  sendBtn: { width:44, height:44, borderRadius:'50%', background:'#F5C518', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  readOnlyBar: { padding:'14px 20px', borderTop:`0.5px solid ${BORDER}`, textAlign:'center', fontSize:12, color:'#444', flexShrink:0 }
 }

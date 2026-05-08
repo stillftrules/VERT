@@ -7,9 +7,9 @@ import { adminLogout } from '../components/AdminLogin'
 
 const FONT = "'Clarity City','DM Mono',sans-serif"
 const MONO = "'DM Mono',monospace"
-const BG = '#0d0f1a'
-const CARD = '#131628'
-const BORDER = '#1e2240'
+const BG = '#111113'
+const CARD = '#1c1c1e'
+const BORDER = '#2a2a2e'
 const NEU_CARD = '6px 6px 14px #0a0a0c, -3px -3px 8px #1e1e22'
 const NEU_SM = '4px 4px 8px #0a0a0c, -2px -2px 6px #1e1e22'
 
@@ -128,6 +128,22 @@ export default function AdminDashboard() {
       const codes = await getActiveCodesForClient(panelClient.id)
       setActiveCodes(codes)
     } catch(e) { console.error(e) }
+  }
+
+  async function handleDeleteClient() {
+    if (!panelClient) return
+    const confirm1 = window.confirm(`Delete @${panelClient.username} permanently? This cannot be undone.`)
+    if (!confirm1) return
+    const confirm2 = window.confirm(`Are you absolutely sure? All users, codes and conversations for @${panelClient.username} will be deleted.`)
+    if (!confirm2) return
+    try {
+      await supabase.from('access_codes').delete().eq('client_id', panelClient.id)
+      await supabase.from('users').delete().eq('client_id', panelClient.id)
+      await supabase.from('conversations').delete().eq('client_id', panelClient.id)
+      await supabase.from('clients').delete().eq('id', panelClient.id)
+      setShowClientPanel(false)
+      loadAll()
+    } catch(e) { alert('Error deleting client: ' + e.message) }
   }
 
   async function handleChangeUsername() {
@@ -381,10 +397,14 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            <div style={{ padding:'0 20px 24px' }}>
+            <div style={{ padding:'0 20px 24px', display:'flex', flexDirection:'column', gap:10 }}>
               <button style={{ ...s.addBtn, width:'100%', padding:13, fontSize:14, boxShadow: NEU_SM }}
                 onClick={() => { setShowClientPanel(false); setTab('codes'); selectClient(panelClient) }}>
                 go to code generation →
+              </button>
+              <button style={{ width:'100%', padding:13, fontSize:13, background:'rgba(220,50,50,0.08)', border:'1px solid rgba(220,50,50,0.3)', borderRadius:12, color:'#e05555', cursor:'pointer', fontFamily: MONO, letterSpacing:'0.05em' }}
+                onClick={handleDeleteClient}>
+                ⚠ delete client permanently
               </button>
             </div>
           </div>
@@ -396,7 +416,7 @@ export default function AdminDashboard() {
         <div style={s.topLeft}>
           <svg width="30" height="30" viewBox="0 0 36 36" fill="none">
             <rect width="36" height="36" rx="10" fill={CARD}/>
-            <path d="M8 12C8 10.3431 9.34315 9 11 9H25C26.6569 9 28 10.3431 28 12V20C28 21.6569 26.6569 23 25 23H20L15 27V23H11C9.34315 23 8 21.6569 8 20V12Z" fill="#F5C518"/>
+            <path d="M8 12C8 10.3431 9.34315 9 11 9H25C26.6569 9 28 10.3431 28 12V20C28 21.6569 26.6569 23 25 23H20L15 27V23H11C9.34315 23 8 21.6569 8 20V12Z" fill="#1d9bf0"/>
           </svg>
           <span style={s.appTitle}>BANQO</span>
           <span style={{ ...s.adminBadge, fontFamily: MONO }}>super admin</span>
@@ -437,7 +457,7 @@ export default function AdminDashboard() {
                 <div key={stat.label} style={{ ...s.statCard, boxShadow: NEU_CARD }}>
                   <div style={{ ...s.statLabel, fontFamily: MONO }}>{stat.label}</div>
                   <div style={s.statVal}>{stat.val}</div>
-                  <div style={{ ...s.statSub, color: stat.warn && stat.val > 0 ? '#e8a020' : '#F5C518' }}>{stat.sub}</div>
+                  <div style={{ ...s.statSub, color: stat.warn && stat.val > 0 ? '#e8a020' : '#1d9bf0' }}>{stat.sub}</div>
                 </div>
               ))}
             </div>
@@ -485,7 +505,7 @@ export default function AdminDashboard() {
               {[
                 { label:'pending', color:'#e8a020', items: pendingClients, nextStatus:'outreach' },
                 { label:'outreach', color:'#85b7eb', items: outreachClients, nextStatus:'active' },
-                { label:'activated', color:'#F5C518', items: clients, action:null }
+                { label:'activated', color:'#1d9bf0', items: clients, action:null }
               ].map(col => (
                 <div key={col.label} style={{ ...s.pipeCol, boxShadow: NEU_CARD }}>
                   <div style={s.pipeColHead}>
@@ -542,7 +562,7 @@ export default function AdminDashboard() {
               {selectedClient && (
                 <>
                   <div style={{ ...s.panelTitle2, fontFamily: MONO }}>step 2 · select users</div>
-                  {clientUsers.length === 0 && <div style={{ ...s.emptyState, fontFamily: MONO }}>no users for this client — <span style={{ color:'#F5C518', cursor:'pointer' }} onClick={() => { setTab('clients'); openClientPanel(selectedClient) }}>add users first</span></div>}
+                  {clientUsers.length === 0 && <div style={{ ...s.emptyState, fontFamily: MONO }}>no users for this client — <span style={{ color:'#1d9bf0', cursor:'pointer' }} onClick={() => { setTab('clients'); openClientPanel(selectedClient) }}>add users first</span></div>}
                   <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
                     {clientUsers.length > 0 && <button style={{ ...s.selAllBtn, fontFamily: MONO }} onClick={() => setSelectedUsers(clientUsers.map(u => u.id))}>select all</button>}
                     <span style={{ fontSize:11, fontFamily: MONO, color:'#888aa0' }}>{selectedUsers.length} selected</span>
@@ -578,13 +598,13 @@ export default function AdminDashboard() {
                     </>
                   )}
                   {dispatchResult.length > 0 && (
-                    <div style={{ marginTop:12, background:'#1a1600', border:'0.5px solid #F5C51840', borderRadius:12, padding:14 }}>
-                      <div style={{ fontSize:12, fontFamily: MONO, color:'#F5C518', marginBottom:10 }}>✓ codes dispatched</div>
+                    <div style={{ marginTop:12, background:'#0f1a2a', border:'0.5px solid #1d9bf040', borderRadius:12, padding:14 }}>
+                      <div style={{ fontSize:12, fontFamily: MONO, color:'#1d9bf0', marginBottom:10 }}>✓ codes dispatched</div>
                       {dispatchResult.map((r,i) => (
-                        <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom:'0.5px solid #2a1f05' }}>
+                        <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 0', borderBottom:'0.5px solid #0f2030' }}>
                           <span style={{ flex:1, fontSize:12, fontWeight:600, color:'#fff' }}>{r.user.full_name}</span>
-                          <span style={{ fontSize:18, fontFamily: MONO, color:'#F5C518', letterSpacing:'0.2em' }}>{r.code}</span>
-                          <span style={{ color: r.status === 'sent' ? '#F5C518' : '#e24b4a', fontSize:14 }}>{r.status === 'sent' ? '✓' : '✗'}</span>
+                          <span style={{ fontSize:18, fontFamily: MONO, color:'#1d9bf0', letterSpacing:'0.2em' }}>{r.code}</span>
+                          <span style={{ color: r.status === 'sent' ? '#1d9bf0' : '#e24b4a', fontSize:14 }}>{r.status === 'sent' ? '✓' : '✗'}</span>
                         </div>
                       ))}
                     </div>
@@ -601,7 +621,7 @@ export default function AdminDashboard() {
                     <div style={{ fontSize:13, fontWeight:600, color:'#fff' }}>{c.users?.full_name}</div>
                     <div style={{ fontSize:11, fontFamily: MONO, color:'#888aa0' }}>{permLabel[c.permission]} · exp {new Date(c.expires_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>
                   </div>
-                  <div style={{ fontSize:20, fontFamily: MONO, color:'#F5C518', letterSpacing:'0.2em' }}>{c.code}</div>
+                  <div style={{ fontSize:20, fontFamily: MONO, color:'#1d9bf0', letterSpacing:'0.2em' }}>{c.code}</div>
                   <button style={s.revokeBtn} onClick={() => handleRevoke(c.id)}>revoke</button>
                 </div>
               ))}
@@ -634,7 +654,7 @@ export default function AdminDashboard() {
                 <div key={req.id} style={{ ...s.reqCard, boxShadow: NEU_CARD }}>
                   <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
                     <div>
-                      <div style={s.clHandle}>{req.meta?.first_name} → <span style={{ color:'#F5C518' }}>@{req.meta?.client_username}</span></div>
+                      <div style={s.clHandle}>{req.meta?.first_name} → <span style={{ color:'#1d9bf0' }}>@{req.meta?.client_username}</span></div>
                       <div style={{ fontSize:11, fontFamily: MONO, color:'#444', marginTop:2 }}>{new Date(req.created_at).toLocaleString()}</div>
                     </div>
                     <div style={{ display:'flex', gap:6, flexWrap:'wrap', justifyContent:'flex-end' }}>
@@ -667,7 +687,7 @@ export default function AdminDashboard() {
                           <div style={{ fontSize:11, fontFamily: MONO, color:'#444', marginTop:2 }}>{new Date(req.created_at).toLocaleString()}</div>
                           {req.meta?.status && <div style={{ fontSize:10, fontFamily: MONO, color: reqStatusColor[req.meta.status] || '#888aa0', marginTop:2 }}>{req.meta.status}</div>}
                         </div>
-                        <button style={{ fontSize:10, fontFamily: MONO, padding:'3px 9px', borderRadius:6, cursor:'pointer', border:`0.5px solid ${BORDER}`, background:'none', color:'#F5C518' }}
+                        <button style={{ fontSize:10, fontFamily: MONO, padding:'3px 9px', borderRadius:6, cursor:'pointer', border:`0.5px solid ${BORDER}`, background:'none', color:'#1d9bf0' }}
                           onClick={() => unhideRequest(req.id)}>restore</button>
                       </div>
                     </div>
@@ -683,35 +703,35 @@ export default function AdminDashboard() {
 }
 
 const s = {
-  dash: { background: BG, color:'#fff', minHeight:'100vh', display:'flex', flexDirection:'column' },
-  topbar: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 24px', borderBottom:`0.5px solid ${BORDER}` },
+  dash: { background:'transparent', color:'#fff', minHeight:'100vh', display:'flex', flexDirection:'column', width:'100%', padding:'12px 10px 0', gap:8, boxSizing:'border-box' },
+  topbar: { background:'rgba(30,30,34,0.88)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', border:'0.5px solid rgba(255,255,255,0.08)', borderRadius:20, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 16px', overflow:'hidden' },
   topLeft: { display:'flex', alignItems:'center', gap:12 },
   appTitle: { fontSize:16, fontWeight:700, color:'#fff', letterSpacing:'0.1em' },
   adminBadge: { fontSize:10, background: CARD, border:`0.5px solid ${BORDER}`, color:'#888aa0', padding:'3px 10px', borderRadius:6 },
   dateLabel: { fontSize:12, color:'#888aa0' },
-  navTabs: { display:'flex', padding:'0 24px', borderBottom:`0.5px solid ${BORDER}` },
+  navTabs: { background:'rgba(30,30,34,0.88)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', border:'0.5px solid rgba(255,255,255,0.08)', borderRadius:20, display:'flex', padding:'0 16px', overflowX:'auto', scrollbarWidth:'none' },
   ntab: { padding:'12px 18px', fontSize:12, color:'#888aa0', cursor:'pointer', borderBottom:'2px solid transparent' },
-  ntabActive: { color:'#F5C518', borderBottomColor:'#F5C518' },
+  ntabActive: { color:'#1d9bf0', borderBottomColor:'#1d9bf0' },
   tabBadge: { display:'inline-block', background:'#e24b4a', color:'#fff', fontSize:9, padding:'1px 5px', borderRadius:8, marginLeft:5 },
-  content: { padding:24, flex:1 },
+  content: { background:'rgba(30,30,34,0.88)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', border:'0.5px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'16px', flex:1, overflowX:'hidden', boxSizing:'border-box', marginBottom:12 },
   statsRow: { display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16 },
-  statCard: { background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:12, padding:'14px 16px' },
+  statCard: { background:'rgba(255,255,255,0.05)', border:'0.5px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'12px 14px', overflow:'hidden', minWidth:0 },
   statLabel: { fontSize:10, color:'#888aa0', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.1em' },
   statVal: { fontSize:24, fontWeight:700 },
   statSub: { fontSize:11, marginTop:4 },
-  panel: { background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:14, padding:18, marginBottom:14 },
+  panel: { background:'rgba(255,255,255,0.04)', border:'0.5px solid rgba(255,255,255,0.09)', borderRadius:18, padding:'14px', marginBottom:14, overflow:'hidden', boxSizing:'border-box' },
   panelTitle2: { fontSize:10, fontWeight:600, color:'#888aa0', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:14 },
   secHead: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 },
   secLabel: { fontSize:11, fontWeight:600, color:'#888aa0', letterSpacing:'0.12em', textTransform:'uppercase' },
   sectionTitle: { fontSize:10, fontWeight:600, color:'#888aa0', letterSpacing:'0.12em', textTransform:'uppercase' },
-  addBtn: { background:'#F5C518', border:'none', color:'#111114', fontSize:12, fontWeight:700, padding:'7px 16px', borderRadius:8, cursor:'pointer' },
+  addBtn: { background:'#1d9bf0', border:'none', color:'#111113', fontSize:12, fontWeight:700, padding:'7px 16px', borderRadius:8, cursor:'pointer' },
   ghostBtn: { background:'none', border:`0.5px solid ${BORDER}`, color:'#888aa0', fontSize:12, padding:'7px 14px', borderRadius:8, cursor:'pointer' },
-  clientRow: { background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:12, padding:'13px 14px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', marginBottom:8 },
-  clAv: { width:36, height:36, borderRadius:10, background:'#2a1f05', color:'#F5C518', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 },
+  clientRow: { background:'rgba(255,255,255,0.04)', border:'0.5px solid rgba(255,255,255,0.09)', borderRadius:16, padding:'12px', display:'flex', alignItems:'center', gap:10, cursor:'pointer', marginBottom:8, overflow:'hidden', minWidth:0 },
+  clAv: { width:36, height:36, borderRadius:10, background:'#0f2030', color:'#1d9bf0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, flexShrink:0 },
   clInfo: { flex:1 },
   clHandle: { fontSize:14, fontWeight:700, color:'#fff' },
   clSub: { fontSize:11, color:'#888aa0', marginTop:2 },
-  manageLink: { color:'#F5C518', fontSize:12, cursor:'pointer' },
+  manageLink: { color:'#1d9bf0', fontSize:12, cursor:'pointer' },
   emptyState: { fontSize:12, color:'#444', padding:'12px 0' },
   pipeline: { display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12 },
   pipeCol: { background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:14, padding:14 },
@@ -722,22 +742,22 @@ const s = {
   pipeCardName: { fontSize:13, fontWeight:700, color:'#fff', marginBottom:2 },
   pipeCardSub: { fontSize:11, color:'#888aa0' },
   submittedBy: { fontSize:10, color:'#444', marginTop:3 },
-  viewDetails: { fontSize:10, color:'#F5C518', marginTop:6 },
+  viewDetails: { fontSize:10, color:'#1d9bf0', marginTop:6 },
   pipeEmpty: { fontSize:11, color:'#333', textAlign:'center', padding:'20px 0' },
   chip: { padding:'7px 14px', background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:20, fontSize:12, fontWeight:600, cursor:'pointer', color:'#888aa0' },
-  chipSelected: { background:'#2a1f05', borderColor:'#F5C518', color:'#F5C518' },
-  selAllBtn: { fontSize:11, color:'#F5C518', background:'none', border:'none', cursor:'pointer' },
+  chipSelected: { background:'#0f2030', borderColor:'#1d9bf0', color:'#1d9bf0' },
+  selAllBtn: { fontSize:11, color:'#1d9bf0', background:'none', border:'none', cursor:'pointer' },
   userRow: { background: BG, border:`0.5px solid ${BORDER}`, borderRadius:10, padding:'10px 12px', marginBottom:7, display:'flex', alignItems:'center', gap:10, cursor:'pointer' },
-  userRowChecked: { background:'#1a1600', borderColor:'#F5C518' },
-  checkBox: { width:18, height:18, borderRadius:5, border:`1.5px solid ${BORDER}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, color:'#111114', flexShrink:0 },
-  checkBoxChecked: { background:'#F5C518', borderColor:'#F5C518' },
-  permSelect: { background: CARD, border:'0.5px solid #F5C51840', borderRadius:6, color:'#F5C518', fontSize:10, padding:'4px 6px', outline:'none' },
+  userRowChecked: { background:'#0f1a2a', borderColor:'#1d9bf0' },
+  checkBox: { width:18, height:18, borderRadius:5, border:`1.5px solid ${BORDER}`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, color:'#111113', flexShrink:0 },
+  checkBoxChecked: { background:'#1d9bf0', borderColor:'#1d9bf0' },
+  permSelect: { background: CARD, border:'0.5px solid #1d9bf040', borderRadius:6, color:'#1d9bf0', fontSize:10, padding:'4px 6px', outline:'none' },
   formLabel: { fontSize:10, color:'#888aa0', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:5 },
-  formInput: { background: BG, border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#fff', fontSize:13, fontWeight:200, padding:'9px 12px', width:'100%', outline:'none', marginBottom:10, boxSizing:'border-box', caretColor:'#F5C518' },
+  formInput: { background: BG, border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#fff', fontSize:13, fontWeight:200, padding:'9px 12px', width:'100%', outline:'none', marginBottom:10, boxSizing:'border-box', caretColor:'#1d9bf0' },
   codeItem: { display:'flex', alignItems:'center', gap:10, padding:'11px 12px', background: BG, border:`0.5px solid ${BORDER}`, borderRadius:10, marginBottom:8 },
   revokeBtn: { background:'none', border:'0.5px solid #e24b4a40', color:'#e24b4a', fontSize:10, padding:'4px 10px', borderRadius:6, cursor:'pointer' },
   overlay: { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.7)', zIndex:100, display:'flex', justifyContent:'flex-end' },
-  slidePanel: { background: CARD, width:420, maxWidth:'90vw', height:'100vh', overflowY:'auto', borderLeft:`0.5px solid ${BORDER}`, display:'flex', flexDirection:'column' },
+  slidePanel: { background:'rgba(22,22,26,0.97)', backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)', width:320, maxWidth:'88vw', height:'100vh', overflowY:'auto', borderLeft:'0.5px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', boxSizing:'border-box' },
   panelHead: { padding:'22px 20px 16px', borderBottom:`0.5px solid ${BORDER}`, display:'flex', alignItems:'flex-start', justifyContent:'space-between' },
   panelTitle: { fontSize:20, fontWeight:700, color:'#fff' },
   panelSub: { fontSize:12, color:'#888aa0', marginTop:4 },
@@ -746,10 +766,10 @@ const s = {
   panelSecHead: { display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14, marginTop:16 },
   formCard: { background: BG, border:`0.5px solid ${BORDER}`, borderRadius:12, padding:14, marginBottom:12 },
   userCard: { background: BG, border:`0.5px solid ${BORDER}`, borderRadius:10, padding:'11px 12px', marginBottom:8, display:'flex', alignItems:'center' },
-  userAvatar: { width:32, height:32, borderRadius:8, background:'#2a1f05', color:'#F5C518', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0 },
+  userAvatar: { width:32, height:32, borderRadius:8, background:'#0f2030', color:'#1d9bf0', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, flexShrink:0 },
   userName: { fontSize:13, fontWeight:600, color:'#fff' },
   userContact: { fontSize:11, color:'#888aa0', marginTop:2 },
-  editUserBtn: { background:'none', border:'0.5px solid #F5C51840', color:'#F5C518', fontSize:10, padding:'3px 8px', borderRadius:6, cursor:'pointer', flexShrink:0 },
+  editUserBtn: { background:'none', border:'0.5px solid #1d9bf040', color:'#1d9bf0', fontSize:10, padding:'3px 8px', borderRadius:6, cursor:'pointer', flexShrink:0 },
   deleteUserBtn: { background:'none', border:'0.5px solid #e24b4a40', color:'#e24b4a', fontSize:10, padding:'3px 8px', borderRadius:6, cursor:'pointer', flexShrink:0 },
   infoCard: { background: BG, border:`0.5px solid ${BORDER}`, borderRadius:12, padding:'12px 14px' },
   infoRow: { display:'flex', alignItems:'flex-start', justifyContent:'space-between', padding:'6px 0', borderBottom:`0.5px solid ${BORDER}` },
