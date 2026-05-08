@@ -6,10 +6,10 @@ const MONO = "'DM Mono', monospace"
 export default function PWAInstallPrompt() {
   const [show, setShow] = useState(false)
   const [platform, setPlatform] = useState(null)
+  const [browser, setBrowser] = useState(null)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
 
   useEffect(() => {
-    // Already running as installed PWA — never show
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
       window.navigator.standalone === true ||
@@ -22,21 +22,26 @@ export default function PWAInstallPrompt() {
     const ua = navigator.userAgent
     const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream
     const isAndroid = /Android/.test(ua)
-    const isChrome = /Chrome/.test(ua) && !/Edge/.test(ua)
-    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua)
+    const isChrome = /CriOS|Chrome/.test(ua) && !/Edge/.test(ua)
+    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS/.test(ua)
+    const isDuck = /DuckDuckGo/.test(ua)
+    const isFirefox = /FxiOS|Firefox/.test(ua)
 
-    if (isIOS && isSafari) {
-      // iOS Safari — can add to homescreen via share button
+    if (isIOS) {
+      const b = isDuck ? 'duck' : isChrome ? 'chrome' : isSafari ? 'safari' : 'other'
+      setBrowser(b)
       setTimeout(() => { setPlatform('ios'); setShow(true) }, 4000)
-    } else if (isAndroid && isChrome) {
-      // Android Chrome — beforeinstallprompt fires
+    } else if (isAndroid) {
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault()
         setDeferredPrompt(e)
         setTimeout(() => { setPlatform('android'); setShow(true) }, 2000)
       })
+      // Fallback for browsers that don't fire beforeinstallprompt
+      const b = isDuck ? 'duck' : isChrome ? 'chrome' : 'other'
+      setBrowser(b)
+      setTimeout(() => { setPlatform('android-manual'); setShow(true) }, 4000)
     }
-    // Desktop and other browsers — don't show, too many variations
   }, [])
 
   function dismiss() {
@@ -54,6 +59,31 @@ export default function PWAInstallPrompt() {
   }
 
   if (!show) return null
+
+  const iosInstructions = {
+    safari: [
+      { step: '1', text: <>Tap the <strong style={{ color:'#F5C518' }}>Share</strong> button at the bottom of your screen <span style={{ color:'#888aa0', fontSize:12 }}>(box with arrow pointing up)</span></> },
+      { step: '2', text: <>Scroll down and tap <strong style={{ color:'#F5C518' }}>"Add to Home Screen"</strong></> },
+      { step: '3', text: <>Tap <strong style={{ color:'#F5C518' }}>"Add"</strong> in the top right corner</> },
+    ],
+    chrome: [
+      { step: '1', text: <>Tap the <strong style={{ color:'#F5C518' }}>three dots menu</strong> (⋮) in the top right corner</> },
+      { step: '2', text: <>Tap <strong style={{ color:'#F5C518' }}>"Add to Home Screen"</strong></> },
+      { step: '3', text: <>Tap <strong style={{ color:'#F5C518' }}>"Add"</strong> to confirm</> },
+    ],
+    duck: [
+      { step: '1', text: <>Tap the <strong style={{ color:'#F5C518' }}>three dots menu</strong> (⋮) at the bottom of your screen</> },
+      { step: '2', text: <>Tap <strong style={{ color:'#F5C518' }}>"Add to Home Screen"</strong></> },
+      { step: '3', text: <>Tap <strong style={{ color:'#F5C518' }}>"Add"</strong> to confirm</> },
+    ],
+    other: [
+      { step: '1', text: <>Open your browser's <strong style={{ color:'#F5C518' }}>menu</strong> (usually ⋮ or Share button)</> },
+      { step: '2', text: <>Look for <strong style={{ color:'#F5C518' }}>"Add to Home Screen"</strong></> },
+      { step: '3', text: <>Tap <strong style={{ color:'#F5C518' }}>"Add"</strong> to confirm</> },
+    ],
+  }
+
+  const steps = iosInstructions[browser] || iosInstructions.other
 
   return (
     <div style={s.overlay}>
@@ -79,19 +109,12 @@ export default function PWAInstallPrompt() {
 
         {platform === 'ios' && (
           <div style={s.steps}>
-            <div style={s.step}>
-              <div style={s.stepNum}>1</div>
-              <div style={s.stepText}>Tap the <strong style={{ color:'#F5C518' }}>Share</strong> button at the bottom of Safari <span style={{ ...s.stepHint, fontFamily: MONO }}>(the box with an arrow pointing up)</span></div>
-            </div>
-            <div style={s.step}>
-              <div style={s.stepNum}>2</div>
-              <div style={s.stepText}>Scroll down and tap <strong style={{ color:'#F5C518' }}>"Add to Home Screen"</strong></div>
-            </div>
-            <div style={s.step}>
-              <div style={s.stepNum}>3</div>
-              <div style={s.stepText}>Tap <strong style={{ color:'#F5C518' }}>"Add"</strong> in the top right corner</div>
-            </div>
-            <div style={{ ...s.iosNote, fontFamily: MONO }}>Must be opened in Safari for this to work</div>
+            {steps.map(({ step, text }) => (
+              <div key={step} style={s.step}>
+                <div style={s.stepNum}>{step}</div>
+                <div style={s.stepText}>{text}</div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -101,27 +124,57 @@ export default function PWAInstallPrompt() {
           </button>
         )}
 
+        {platform === 'android-manual' && (
+          <div style={s.steps}>
+            <div style={s.step}>
+              <div style={s.stepNum}>1</div>
+              <div style={s.stepText}>Tap the <strong style={{ color:'#F5C518' }}>three dots menu</strong> (⋮) in your browser</div>
+            </div>
+            <div style={s.step}>
+              <div style={s.stepNum}>2</div>
+              <div style={s.stepText}>Tap <strong style={{ color:'#F5C518' }}>"Add to Home Screen"</strong></div>
+            </div>
+            <div style={s.step}>
+              <div style={s.stepNum}>3</div>
+              <div style={s.stepText}>Tap <strong style={{ color:'#F5C518' }}>"Add"</strong> to confirm</div>
+            </div>
+          </div>
+        )}
+
         <button style={{ ...s.dismissBtn, fontFamily: MONO }} onClick={dismiss}>maybe later</button>
       </div>
+
+      {/* Crisp chat position fix */}
+      <style>{`
+        .crisp-client .cc-kv6t { bottom: 80px !important; right: 20px !important; }
+        .crisp-client .cc-1xry { bottom: 80px !important; right: 20px !important; }
+      `}</style>
     </div>
   )
 }
 
 const s = {
-  overlay: { position:'fixed', bottom:0, left:0, right:0, zIndex:9999, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'flex-end', justifyContent:'center' },
-  sheet: { background:'#1a1a1e', borderRadius:'20px 20px 0 0', padding:'28px 24px 40px', width:'100%', maxWidth:480, border:'0.5px solid #252528', position:'relative' },
+  overlay: { position:'fixed', bottom:0, left:0, right:0, zIndex:9999, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-end', justifyContent:'center' },
+  sheet: {
+    background: 'linear-gradient(145deg, #1f1a00, #2a2200)',
+    border: '1.5px solid #F5C518',
+    boxShadow: '0 -4px 40px rgba(245,197,24,0.25)',
+    borderRadius:'20px 20px 0 0',
+    padding:'28px 24px 40px',
+    width:'100%',
+    maxWidth:480,
+    position:'relative'
+  },
   closeBtn: { position:'absolute', top:16, right:16, background:'none', border:'none', color:'#888aa0', fontSize:18, cursor:'pointer', padding:4 },
   iconRow: { display:'flex', alignItems:'center', gap:14, marginBottom:16 },
   icon: { width:48, height:48, borderRadius:12, overflow:'hidden', flexShrink:0 },
   appName: { fontSize:18, fontWeight:700, color:'#ffffff', letterSpacing:'0.1em' },
   appSub: { fontSize:12, color:'#F5C518', marginTop:2 },
-  desc: { fontSize:13, color:'#888aa0', lineHeight:1.6, marginBottom:20 },
+  desc: { fontSize:13, color:'#cccccc', lineHeight:1.6, marginBottom:20 },
   steps: { display:'flex', flexDirection:'column', gap:14, marginBottom:20 },
   step: { display:'flex', gap:12, alignItems:'flex-start' },
   stepNum: { width:26, height:26, borderRadius:8, background:'#F5C518', color:'#111114', fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 },
-  stepText: { fontSize:14, color:'#cccccc', lineHeight:1.5 },
-  stepHint: { fontSize:12, color:'#888aa0' },
-  iosNote: { fontSize:11, color:'#888aa0', background:'#111114', padding:'8px 12px', borderRadius:8, marginTop:4 },
+  stepText: { fontSize:14, color:'#ffffff', lineHeight:1.5 },
   installBtn: { width:'100%', padding:'14px', background:'#F5C518', border:'none', borderRadius:12, color:'#111114', fontSize:16, fontWeight:700, cursor:'pointer', marginBottom:12 },
   dismissBtn: { width:'100%', padding:'12px', background:'none', border:'none', color:'#888aa0', fontSize:14, cursor:'pointer' }
 }
