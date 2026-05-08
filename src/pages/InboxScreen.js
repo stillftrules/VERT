@@ -2,9 +2,68 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
+import { GlowUsername } from './PublicLanding'
 
-export default function InboxScreen() {
-  const { session, logout } = useAuth()
+const FONT = "'Clarity City','DM Mono',sans-serif"
+const MONO = "'DM Mono',monospace"
+const BG = '#111114'
+const CARD = '#1a1a1e'
+const BORDER = '#252528'
+
+// Stories-style client row
+export function ClientStoriesRow({ sessions, activeClient, onSwitch, onEnterCode }) {
+  const navigate = useNavigate()
+  return (
+    <div style={s.storiesWrap}>
+      <style>{`
+        @keyframes amberPulse {
+          0%,100% { box-shadow: 0 0 0 2px rgba(245,197,24,0.4), 0 0 8px rgba(245,197,24,0.2); }
+          50% { box-shadow: 0 0 0 2px rgba(245,197,24,0.9), 0 0 16px rgba(245,197,24,0.5), 0 0 28px rgba(245,197,24,0.2); }
+        }
+        @keyframes greyPulse {
+          0%,100% { box-shadow: 0 0 0 2px rgba(80,80,80,0.4); }
+          50% { box-shadow: 0 0 0 2px rgba(80,80,80,0.7); }
+        }
+      `}</style>
+      <div style={s.storiesScroll}>
+        {sessions.map(session => {
+          const isActive = activeClient === session.client.username
+          const isExpired = new Date(session.expiresAt) < new Date()
+          return (
+            <div key={session.client.username} style={s.storyItem}
+              onClick={() => !isExpired && onSwitch(session.client.username, navigate)}>
+              <div style={{
+                ...s.storyCircle,
+                animation: isExpired ? 'greyPulse 3s ease-in-out infinite' : 'amberPulse 2.5s ease-in-out infinite',
+                opacity: isExpired ? 0.4 : 1,
+                cursor: isExpired ? 'not-allowed' : 'pointer',
+                background: isActive ? '#2a1f05' : CARD,
+              }}>
+                <span style={{ ...s.storyInitials, color: isExpired ? '#555' : '#F5C518' }}>
+                  {session.client.username.slice(0,2).toUpperCase()}
+                </span>
+                {isActive && <div style={s.activeIndicator} />}
+              </div>
+              <div style={{ ...s.storyUsername, color: isExpired ? '#444' : isActive ? '#F5C518' : '#888aa0', fontFamily: MONO }}>
+                @{session.client.username}
+              </div>
+            </div>
+          )
+        })}
+        {/* Add code button */}
+        <div style={s.storyItem} onClick={onEnterCode}>
+          <div style={{ ...s.storyCircle, background: CARD, border:`1.5px dashed ${BORDER}`, animation:'none', boxShadow:'none' }}>
+            <span style={{ fontSize:22, color:'#444' }}>+</span>
+          </div>
+          <div style={{ ...s.storyUsername, color:'#444', fontFamily: MONO }}>add code</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function InboxScreen({ onEnterCode }) {
+  const { session, sessionList, switchClient, logout } = useAuth()
   const navigate = useNavigate()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,35 +74,22 @@ export default function InboxScreen() {
 
   const myUsername = session.client.username
 
-  useEffect(() => {
-    loadConversations()
-  }, [session])
+  useEffect(() => { loadConversations() }, [session])
 
   async function loadConversations() {
+    setLoading(true)
     try {
-      // Find all shared conversations that involve this client's username
-      const { data, error } = await supabase
-        .from('conversations')
-        .select('*')
-        .not('convo_key', 'is', null)
-        .ilike('convo_key', `%${myUsername}%`)
+      const { data } = await supabase.from('conversations').select('*')
+        .not('convo_key', 'is', null).ilike('convo_key', `%${myUsername}%`)
         .order('last_message_at', { ascending: false, nullsFirst: false })
-
-      if (error) throw error
-
-      // Extract the other person's username from the convo_key
       const convos = (data || []).map(c => {
         const parts = c.convo_key.split('::')
         const otherUsername = parts.find(p => p !== myUsername) || parts[0]
         return { ...c, otherUsername }
       })
-
       setConversations(convos)
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+    } catch(e) { console.error(e) }
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -51,30 +97,17 @@ export default function InboxScreen() {
       if (!search.trim()) { setSearchResults([]); return }
       setSearching(true)
       try {
-        const { data, error } = await supabase
-          .from('clients')
-          .select('id, username, full_name')
-          .ilike('username', `%${search}%`)
-          .eq('status', 'active')
-          .neq('username', myUsername)
-          .limit(8)
-
-        if (error) throw error
+        const { data } = await supabase.from('clients').select('id, username, full_name')
+          .ilike('username', `%${search}%`).eq('status', 'active').neq('username', myUsername).limit(8)
         setSearchResults(data || [])
-      } catch(e) {
-        console.error(e)
-      } finally {
-        setSearching(false)
-      }
+      } catch(e) { console.error(e) }
+      setSearching(false)
     }
     const timer = setTimeout(doSearch, 300)
     return () => clearTimeout(timer)
   }, [search, session])
 
   const permLabel = { read_send:'read + send', read_only:'read only', send_only:'send only' }
-  const initials = (name) => name ? name.slice(0, 2).toUpperCase() : '??'
-  const avatarColors = [['#1e2d4a','#378add'],['#2d1e3a','#d4537e'],['#1e2e1e','#639922'],['#2a1e1e','#d85a30'],['#1e2535','#85b7eb']]
-  const colorFor = (str) => avatarColors[(str || '').charCodeAt(0) % avatarColors.length]
 
   function timeAgo(ts) {
     if (!ts) return ''
@@ -82,176 +115,140 @@ export default function InboxScreen() {
     const m = Math.floor(diff / 60000)
     if (m < 1) return 'just now'
     if (m < 60) return `${m}m`
-    const h = Math.floor(m / 60)
-    if (h < 24) return `${h}h`
+    if (m < 1440) return `${Math.floor(m/60)}h`
     return 'yesterday'
   }
 
   function openChat(username) {
-    setShowSearch(false)
-    setSearch('')
-    setSearchResults([])
+    setShowSearch(false); setSearch(''); setSearchResults([])
     navigate(`/chat/${username}`)
   }
 
+  function handleSwitch(username, nav) {
+    switchClient(username)
+    nav('/inbox')
+  }
+
   return (
-    <div style={s.wrap}>
+    <div style={{ ...s.wrap, fontFamily: FONT }}>
+      <style>{`::placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; }`}</style>
+
       <div style={s.topBar}>
-        <div style={s.userPill}>
-          <div style={s.avatar}>{initials(myUsername)}</div>
-          <div>
-            <div style={s.handle}>@{myUsername}</div>
-            <div style={s.statusRow}>
-              <div style={s.statusDot} />
-              <span style={s.statusLabel}>online until 11pm ET</span>
-            </div>
-          </div>
+        <div>
+          <GlowUsername username={myUsername} size={18} />
+          <div style={{ ...s.subHandle, fontFamily: MONO }}>{session.user.full_name} · {permLabel[session.permission]}</div>
         </div>
-        <button style={s.iconBtn} onClick={() => setShowSearch(true)}>🔍</button>
+        <button style={s.searchIconBtn} onClick={() => setShowSearch(true)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888aa0" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
       </div>
 
-      <div style={s.userBanner}>
-        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <span style={s.bannerLabel}>logged in as user ·</span>
-          <span style={s.bannerName}>{session.user.full_name}</span>
-        </div>
-        <span style={s.permBadge}>{permLabel[session.permission]}</span>
-      </div>
+      {/* Stories row - always visible when multiple clients */}
+      {sessionList.length > 0 && (
+        <ClientStoriesRow
+          sessions={sessionList}
+          activeClient={myUsername}
+          onSwitch={handleSwitch}
+          onEnterCode={onEnterCode}
+        />
+      )}
 
       {showSearch && (
         <div style={s.searchOverlay}>
           <div style={s.searchRow}>
             <div style={s.searchBar}>
-              <span>🔍</span>
-              <input
-                autoFocus
-                style={s.searchInput}
-                placeholder="find a username..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5C518" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input autoFocus style={{ ...s.searchInput, fontFamily: MONO }} placeholder="find a username..."
+                value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <button style={s.cancelBtn} onClick={() => { setShowSearch(false); setSearch(''); setSearchResults([]) }}>cancel</button>
+            <button style={{ ...s.cancelBtn, fontFamily: FONT }} onClick={() => { setShowSearch(false); setSearch(''); setSearchResults([]) }}>cancel</button>
           </div>
-
           <div style={s.searchResults}>
-            {!search.trim() && <div style={s.searchHint}>start typing to find someone</div>}
-            {searching && <div style={s.searchHint}>searching...</div>}
-            {!searching && search.trim() && searchResults.length === 0 && (
-              <div style={s.searchHint}>no users found for "{search}"</div>
-            )}
-            {searchResults.map((client, i) => {
-              const [bg, fg] = colorFor(client.username)
-              return (
-                <div key={client.id} style={{ ...s.resultItem, animationDelay:`${i * 0.05}s` }}
-                  onClick={() => openChat(client.username)}>
-                  <div style={{ ...s.resultAvatar, background: bg, color: fg }}>
-                    {initials(client.username)}
-                  </div>
-                  <div>
-                    <div style={s.resultName}>{client.full_name}</div>
-                    <div style={s.resultHandle}>@{client.username}</div>
-                  </div>
-                  <div style={s.onlineTag}>online</div>
-                </div>
-              )
-            })}
+            {!search.trim() && <div style={{ ...s.searchHint, fontFamily: MONO }}>start typing to find someone</div>}
+            {searching && <div style={{ ...s.searchHint, fontFamily: MONO }}>searching...</div>}
+            {!searching && search.trim() && searchResults.length === 0 && <div style={{ ...s.searchHint, fontFamily: MONO }}>no users found</div>}
+            {searchResults.map(client => (
+              <div key={client.id} style={s.resultItem} onClick={() => openChat(client.username)}>
+                <GlowUsername username={client.username} size={16} />
+                <div style={{ ...s.resultSub, fontFamily: MONO }}>{client.full_name}</div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {!showSearch && (
         <>
-          <div style={s.note}>
-            <span>ℹ️</span>
-            <span style={s.noteText}>These are <strong style={{color:'#888'}}>your threads</strong> — relay responses to your client.</span>
-          </div>
-
-          <div style={s.sectionLabel}>my conversations</div>
-
+          <div style={{ ...s.sectionLabel, fontFamily: MONO }}>conversations</div>
           <div style={s.list}>
-            {loading && <div style={s.empty}>loading...</div>}
+            {loading && <div style={{ ...s.empty, fontFamily: MONO }}>loading...</div>}
             {!loading && conversations.length === 0 && (
-              <div style={s.empty}>
-                {'no conversations yet.\n'}
-                <span style={{ color:'#1d9e75', cursor:'pointer' }} onClick={() => setShowSearch(true)}>
-                  tap 🔍 to find someone
-                </span>
+              <div style={{ ...s.empty, fontFamily: MONO }}>
+                no conversations yet
+                <div style={{ color:'#F5C518', cursor:'pointer', marginTop:8, fontSize:13 }} onClick={() => setShowSearch(true)}>tap search to find someone →</div>
               </div>
             )}
-            {conversations.map(convo => {
-              const [bg, fg] = colorFor(convo.otherUsername)
-              return (
-                <div key={convo.id} style={s.convoItem} onClick={() => navigate(`/chat/${convo.otherUsername}`)}>
-                  <div style={{ ...s.convoAvatar, background: bg, color: fg }}>
-                    {initials(convo.otherUsername)}
-                  </div>
-                  <div style={s.convoInfo}>
-                    <div style={s.convoName}>@{convo.otherUsername}</div>
-                    <div style={s.convoPreview}>{convo.last_message || 'no messages yet'}</div>
-                    <span style={s.threadTag}>your thread</span>
-                  </div>
-                  <div style={s.convoMeta}>
-                    <div style={s.convoTime}>{timeAgo(convo.last_message_at)}</div>
-                    {convo.unread_count > 0 && <div style={s.badge}>{convo.unread_count}</div>}
-                  </div>
+            {conversations.map(convo => (
+              <div key={convo.id} style={s.convoItem} onClick={() => navigate(`/chat/${convo.otherUsername}`)}>
+                <div style={s.convoInfo}>
+                  <GlowUsername username={convo.otherUsername} size={17} />
+                  <div style={{ ...s.convoPreview, fontFamily: MONO }}>{convo.last_message || 'no messages yet'}</div>
                 </div>
-              )
-            })}
+                <div style={s.convoMeta}>
+                  <div style={{ ...s.convoTime, fontFamily: MONO }}>{timeAgo(convo.last_message_at)}</div>
+                  {convo.unread_count > 0 && <div style={s.badge}>{convo.unread_count}</div>}
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}
 
       <div style={s.bottomNav}>
-        <button style={{...s.navBtn, color:'#1d9e75'}}>💬<span style={s.navLabel}>chats</span></button>
-        <button style={s.navBtn}>🔔<span style={s.navLabel}>alerts</span></button>
-        <button style={s.navBtn} onClick={logout}>↩<span style={s.navLabel}>logout</span></button>
+        <button style={{ ...s.navBtn, color:'#F5C518' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span style={{ ...s.navLabel, fontFamily: MONO }}>chats</span>
+        </button>
+        <button style={s.navBtn} onClick={logout}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#888aa0" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+          <span style={{ ...s.navLabel, fontFamily: MONO }}>logout</span>
+        </button>
       </div>
     </div>
   )
 }
 
 const s = {
-  wrap: { background:'#0e0e10', minHeight:'100vh', display:'flex', flexDirection:'column', fontFamily:"'Syne',sans-serif", color:'#f0ede6', maxWidth:480, margin:'0 auto' },
-  topBar: { padding:'14px 16px 10px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:'0.5px solid #2a2a2e', flexShrink:0 },
-  userPill: { display:'flex', alignItems:'center', gap:8 },
-  avatar: { width:34, height:34, borderRadius:'50%', background:'#1e6a4a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:600, color:'#5dcaa5' },
-  handle: { fontSize:15, fontWeight:600 },
-  statusRow: { display:'flex', alignItems:'center', gap:5 },
-  statusDot: { width:7, height:7, borderRadius:'50%', background:'#1d9e75' },
-  statusLabel: { fontSize:11, color:'#5dcaa5', fontFamily:"'DM Mono',monospace" },
-  iconBtn: { background:'none', border:'none', fontSize:18, cursor:'pointer', color:'#888' },
-  userBanner: { background:'#13201a', borderBottom:'0.5px solid #1d9e75', padding:'7px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 },
-  bannerLabel: { fontSize:10, fontFamily:"'DM Mono',monospace", color:'#0f6e56' },
-  bannerName: { fontSize:10, fontFamily:"'DM Mono',monospace", color:'#5dcaa5', fontWeight:600 },
-  permBadge: { fontSize:9, fontFamily:"'DM Mono',monospace", background:'#1d9e75', color:'#04342c', padding:'1px 7px', borderRadius:5 },
-  searchOverlay: { flex:1, display:'flex', flexDirection:'column', background:'#0e0e10' },
-  searchRow: { padding:'12px 16px', display:'flex', alignItems:'center', gap:10, borderBottom:'0.5px solid #1e1e22' },
-  searchBar: { flex:1, background:'#1a1a1e', border:'0.5px solid #1d9e75', borderRadius:10, display:'flex', alignItems:'center', gap:8, padding:'8px 12px' },
-  searchInput: { background:'none', border:'none', outline:'none', color:'#f0ede6', fontSize:14, fontFamily:"'Syne',sans-serif", width:'100%' },
-  cancelBtn: { background:'none', border:'none', color:'#1d9e75', fontSize:13, cursor:'pointer', fontFamily:"'Syne',sans-serif" },
+  wrap: { background: BG, minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', maxWidth:480, margin:'0 auto' },
+  topBar: { padding:'16px 20px 12px', display:'flex', alignItems:'center', justifyContent:'space-between', borderBottom:`0.5px solid ${BORDER}`, flexShrink:0 },
+  subHandle: { fontSize:12, color:'#888aa0', marginTop:3 },
+  searchIconBtn: { background:'none', border:'none', cursor:'pointer', padding:4, display:'flex' },
+  storiesWrap: { borderBottom:`0.5px solid ${BORDER}`, padding:'12px 0', flexShrink:0 },
+  storiesScroll: { display:'flex', gap:16, overflowX:'auto', paddingLeft:20, paddingRight:20, scrollbarWidth:'none' },
+  storyItem: { display:'flex', flexDirection:'column', alignItems:'center', gap:6, cursor:'pointer', flexShrink:0 },
+  storyCircle: { width:56, height:56, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', transition:'all .2s' },
+  storyInitials: { fontSize:16, fontWeight:700, fontFamily: MONO },
+  activeIndicator: { position:'absolute', bottom:0, right:0, width:14, height:14, borderRadius:'50%', background:'#F5C518', border:`2px solid ${BG}` },
+  storyUsername: { fontSize:10, maxWidth:64, textAlign:'center', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' },
+  searchOverlay: { flex:1, display:'flex', flexDirection:'column', background: BG },
+  searchRow: { padding:'14px 20px', display:'flex', alignItems:'center', gap:10, borderBottom:`0.5px solid ${BORDER}` },
+  searchBar: { flex:1, background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:12, display:'flex', alignItems:'center', gap:10, padding:'10px 14px' },
+  searchInput: { background:'none', border:'none', outline:'none', color:'#fff', fontSize:15, width:'100%' },
+  cancelBtn: { background:'none', border:'none', color:'#F5C518', fontSize:14, cursor:'pointer', whiteSpace:'nowrap' },
   searchResults: { flex:1, padding:'8px 0', overflowY:'auto' },
-  searchHint: { textAlign:'center', padding:'40px 16px', color:'#333', fontSize:12, fontFamily:"'DM Mono',monospace" },
-  resultItem: { display:'flex', alignItems:'center', gap:12, padding:'12px 16px', cursor:'pointer', borderBottom:'0.5px solid #161618' },
-  resultAvatar: { width:44, height:44, borderRadius:'50%', fontSize:15, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  resultName: { fontSize:14, fontWeight:600 },
-  resultHandle: { fontSize:12, color:'#555', fontFamily:"'DM Mono',monospace" },
-  onlineTag: { marginLeft:'auto', fontSize:9, fontFamily:"'DM Mono',monospace", background:'#13201a', color:'#1d9e75', border:'0.5px solid #1d9e75', padding:'2px 7px', borderRadius:8 },
-  note: { margin:'10px 16px', background:'#1a1a1e', border:'0.5px solid #2a2a2e', borderRadius:8, padding:'8px 12px', display:'flex', alignItems:'center', gap:7, flexShrink:0 },
-  noteText: { fontSize:11, fontFamily:"'DM Mono',monospace", color:'#555', lineHeight:1.4 },
-  sectionLabel: { fontSize:10, fontWeight:600, letterSpacing:'0.12em', color:'#444', textTransform:'uppercase', fontFamily:"'DM Mono',monospace", padding:'0 16px', marginBottom:6, flexShrink:0 },
-  list: { flex:1, overflowY:'auto' },
-  empty: { textAlign:'center', padding:'40px 16px', color:'#333', fontSize:12, fontFamily:"'DM Mono',monospace", lineHeight:2, whiteSpace:'pre-line' },
-  convoItem: { display:'flex', alignItems:'center', gap:12, padding:'11px 16px', cursor:'pointer', borderBottom:'0.5px solid #161618' },
-  convoAvatar: { width:42, height:42, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:600, flexShrink:0 },
+  searchHint: { textAlign:'center', padding:'40px 16px', color:'#444', fontSize:13 },
+  resultItem: { display:'flex', flexDirection:'column', padding:'14px 20px', cursor:'pointer', borderBottom:`0.5px solid #161618`, gap:4 },
+  resultSub: { fontSize:12, color:'#555' },
+  sectionLabel: { fontSize:11, fontWeight:600, letterSpacing:'0.14em', color:'#888aa0', textTransform:'uppercase', padding:'16px 20px 10px', flexShrink:0 },
+  list: { flex:1, overflowY:'auto', padding:'0 20px', display:'flex', flexDirection:'column', gap:12, paddingBottom:20 },
+  empty: { textAlign:'center', padding:'60px 16px', color:'#444', fontSize:13, lineHeight:2 },
+  convoItem: { background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:16, padding:'16px', display:'flex', alignItems:'center', gap:14, cursor:'pointer' },
   convoInfo: { flex:1, minWidth:0 },
-  convoName: { fontSize:14, fontWeight:600, marginBottom:2 },
-  convoPreview: { fontSize:12, color:'#555', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', fontFamily:"'DM Mono',monospace" },
-  threadTag: { fontSize:9, fontFamily:"'DM Mono',monospace", color:'#1d9e75', background:'#13201a', border:'0.5px solid #1d9e75', padding:'1px 6px', borderRadius:4, marginTop:3, display:'inline-block' },
+  convoPreview: { fontSize:13, color:'#888aa0', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', marginTop:4 },
   convoMeta: { textAlign:'right', flexShrink:0 },
-  convoTime: { fontSize:10, color:'#444', fontFamily:"'DM Mono',monospace", marginBottom:4 },
-  badge: { background:'#1d9e75', color:'#04342c', fontSize:10, fontWeight:700, borderRadius:10, padding:'1px 6px', fontFamily:"'DM Mono',monospace", display:'inline-block' },
-  bottomNav: { borderTop:'0.5px solid #1e1e22', display:'flex', padding:'10px 0 14px', flexShrink:0 },
-  navBtn: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', color:'#444', fontSize:18 },
-  navLabel: { fontSize:9, fontFamily:"'DM Mono',monospace" }
+  convoTime: { fontSize:11, color:'#444', marginBottom:4 },
+  badge: { background:'#F5C518', color:'#111114', fontSize:11, fontWeight:700, borderRadius:10, padding:'2px 8px', display:'inline-block' },
+  bottomNav: { borderTop:`0.5px solid ${BORDER}`, display:'flex', padding:'12px 0 20px', flexShrink:0 },
+  navBtn: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5, background:'none', border:'none', cursor:'pointer', color:'#888aa0' },
+  navLabel: { fontSize:11 }
 }

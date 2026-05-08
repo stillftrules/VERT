@@ -3,24 +3,59 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <meta name="theme-color" content="#0e0e10" />
-    <meta name="description" content="Vert — your team, one voice" />
+    <meta name="theme-color" content="#181922" />
+    <meta name="description" content="Banqo — your team, one voice" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Vert" />
+    <meta name="apple-mobile-web-app-title" content="Banqo" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
-    <title>Vert</title>
+    <!-- Clarity City font -->
     <style>
+      @font-face {
+        font-family: 'Clarity City';
+        src: url('https://cdn.jsdelivr.net/gh/nicolebeechler/clarity-city@main/fonts/ClarityCity-Regular.woff2') format('woff2');
+        font-weight: 400; font-style: normal;
+      }
+      @font-face {
+        font-family: 'Clarity City';
+        src: url('https://cdn.jsdelivr.net/gh/nicolebeechler/clarity-city@main/fonts/ClarityCity-Medium.woff2') format('woff2');
+        font-weight: 500; font-style: normal;
+      }
+      @font-face {
+        font-family: 'Clarity City';
+        src: url('https://cdn.jsdelivr.net/gh/nicolebeechler/clarity-city@main/fonts/ClarityCity-Bold.woff2') format('woff2');
+        font-weight: 700; font-style: normal;
+      }
       * { box-sizing: border-box; }
-      body { margin: 0; background: #0e0e10; }
+      body { margin: 0; background: #181922; font-family: 'Clarity City', 'DM Mono', sans-serif; }
       textarea { font-family: inherit; }
+      input::placeholder { color: #888aa0; }
+      textarea::placeholder { color: #888aa0; }
+      ::-webkit-scrollbar { width: 0; height: 0; }
+      ::placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; }
+      ::-webkit-input-placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; }
+      ::-moz-placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; opacity: 1; }
     </style>
+    <title>Banqo</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <!-- Crisp Chat -->
+    <script type="text/javascript">
+      window.$crisp=[];
+      window.CRISP_WEBSITE_ID="726a3d99-b01e-4067-8632-73fa21abddd1";
+      (function(){
+        var d=document;
+        var s=d.createElement("script");
+        s.src="https://client.crisp.chat/l.js";
+        s.async=1;
+        d.getElementsByTagName("head")[0].appendChild(s);
+      })();
+    </script>
   </body>
 </html>

@@ -2,10 +2,18 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 import { supabase } from '../lib/supabase'
+import { GlowUsername } from './PublicLanding'
+import { ClientStoriesRow } from './InboxScreen'
 
-export default function ChatScreen() {
+const FONT = "'Clarity City','DM Mono',sans-serif"
+const MONO = "'DM Mono',monospace"
+const BG = '#111114'
+const CARD = '#1a1a1e'
+const BORDER = '#252528'
+
+export default function ChatScreen({ onEnterCode }) {
   const { contactUsername } = useParams()
-  const { session, canSend } = useAuth()
+  const { session, canSend, sessionList, switchClient } = useAuth()
   const navigate = useNavigate()
 
   const [messages, setMessages] = useState([])
@@ -14,6 +22,7 @@ export default function ChatScreen() {
   const [editingId, setEditingId] = useState(null)
   const [editContent, setEditContent] = useState('')
   const [recording, setRecording] = useState(false)
+  const [copiedId, setCopiedId] = useState(null)
   const messagesEndRef = useRef(null)
   const channelRef = useRef(null)
 
@@ -23,151 +32,56 @@ export default function ChatScreen() {
 
   useEffect(() => {
     async function init() {
-      // Look for existing shared conversation by convo_key
-      let { data: convo } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('convo_key', convoKey)
-        .single()
-
+      let { data: convo } = await supabase.from('conversations').select('*').eq('convo_key', convoKey).single()
       if (!convo) {
-        // Create it — only one shared conversation per pair
-        const { data: newConvo, error } = await supabase
-          .from('conversations')
-          .insert({
-            client_id: session.client.id,
-            user_id: null,
-            contact_username: convoKey,
-            convo_key: convoKey
-          })
-          .select()
-          .single()
-
+        const { data: newConvo, error } = await supabase.from('conversations')
+          .insert({ client_id: session.client.id, user_id: null, contact_username: convoKey, convo_key: convoKey })
+          .select().single()
         if (error) {
-          // Race condition — try fetching again
-          const { data: retry } = await supabase
-            .from('conversations')
-            .select('*')
-            .eq('convo_key', convoKey)
-            .single()
+          const { data: retry } = await supabase.from('conversations').select('*').eq('convo_key', convoKey).single()
           convo = retry
-        } else {
-          convo = newConvo
-        }
+        } else { convo = newConvo }
       }
-
       if (!convo) return
       setConversationId(convo.id)
-
-      // Load messages
-      const { data: msgs } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', convo.id)
-        .eq('is_deleted', false)
-        .order('created_at', { ascending: true })
-
+      const { data: msgs } = await supabase.from('messages').select('*')
+        .eq('conversation_id', convo.id).eq('is_deleted', false).order('created_at', { ascending: true })
       setMessages(msgs || [])
-
-      // Clean up old channel
-      if (channelRef.current) {
-        await supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-
-      // Subscribe to real-time messages
-      const channel = supabase
-        .channel(`chat-${convo.id}-${Date.now()}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${convo.id}`
-          },
+      if (channelRef.current) { await supabase.removeChannel(channelRef.current); channelRef.current = null }
+      const channel = supabase.channel(`chat-${convo.id}-${Date.now()}`)
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'messages', filter:`conversation_id=eq.${convo.id}` },
+          (payload) => setMessages(prev => prev.find(m => m.id === payload.new.id) ? prev : [...prev, payload.new]))
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'messages', filter:`conversation_id=eq.${convo.id}` },
           (payload) => {
-            setMessages(prev => {
-              if (prev.find(m => m.id === payload.new.id)) return prev
-              return [...prev, payload.new]
-            })
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${convo.id}`
-          },
-          (payload) => {
-            if (payload.new.is_deleted) {
-              setMessages(prev => prev.filter(m => m.id !== payload.new.id))
-            } else {
-              setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m))
-            }
-          }
-        )
-
+            if (payload.new.is_deleted) setMessages(prev => prev.filter(m => m.id !== payload.new.id))
+            else setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m))
+          })
       channel.subscribe()
       channelRef.current = channel
     }
-
     init()
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
-    }
+    return () => { if (channelRef.current) { supabase.removeChannel(channelRef.current); channelRef.current = null } }
   }, [contactUsername, session])
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior:'smooth' }) }, [messages])
 
   async function handleSend(isTranscribed = false) {
     if (!input.trim() || !canSend || !conversationId) return
-    const content = input.trim()
-    setInput('')
-
-    const { data: msg, error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        client_id: session.client.id,
-        sender: 'user',
-        sent_by_user_id: session.user.id,
-        content,
-        is_transcribed: isTranscribed,
-        meta: { from_username: myUsername, to_username: otherUsername }
-      })
-      .select()
-      .single()
-
+    const content = input.trim(); setInput('')
+    const { data: msg, error } = await supabase.from('messages').insert({
+      conversation_id: conversationId, client_id: session.client.id,
+      sender:'user', sent_by_user_id: session.user.id, content,
+      is_transcribed: isTranscribed,
+      meta: { from_username: myUsername, to_username: otherUsername }
+    }).select().single()
     if (!error) {
-      await supabase
-        .from('conversations')
-        .update({ last_message: content, last_message_at: msg.created_at })
-        .eq('id', conversationId)
-
-      await supabase.from('audit_log').insert({
-        event_type: 'message_sent',
-        client_id: session.client.id,
-        user_id: session.user.id,
-        message_id: msg.id,
-        meta: { from: myUsername, to: otherUsername, preview: content.slice(0, 60) }
-      })
+      await supabase.from('conversations').update({ last_message: content, last_message_at: msg.created_at }).eq('id', conversationId)
+      await supabase.from('audit_log').insert({ event_type:'message_sent', client_id: session.client.id, user_id: session.user.id, message_id: msg.id, meta: { from: myUsername, to: otherUsername, preview: content.slice(0,60) } })
     }
   }
 
   async function handleEdit(id) {
-    await supabase
-      .from('messages')
-      .update({ content: editContent, is_edited: true, edited_at: new Date().toISOString() })
-      .eq('id', id)
+    await supabase.from('messages').update({ content: editContent, is_edited: true, edited_at: new Date().toISOString() }).eq('id', id)
     setMessages(prev => prev.map(m => m.id === id ? { ...m, content: editContent, is_edited: true } : m))
     setEditingId(null)
   }
@@ -177,136 +91,175 @@ export default function ChatScreen() {
     setMessages(prev => prev.filter(m => m.id !== id))
   }
 
+  function handleCopy(id, content) {
+    navigator.clipboard?.writeText(content).then(() => {
+      setCopiedId(id)
+      setTimeout(() => setCopiedId(null), 1500)
+    })
+  }
+
   function handleMic() {
-    setRecording(r => !r)
-    if (recording) setInput('Voice message transcribed here')
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { alert('Voice input not supported. Try Chrome.'); return }
+    if (recording) { setRecording(false); return }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    const recognition = new SR()
+    recognition.lang = 'en-US'; recognition.interimResults = false; recognition.maxAlternatives = 1
+    recognition.onstart = () => setRecording(true)
+    recognition.onresult = (e) => { setInput(prev => prev ? prev + ' ' + e.results[0][0].transcript : e.results[0][0].transcript); setRecording(false) }
+    recognition.onerror = () => setRecording(false)
+    recognition.onend = () => setRecording(false)
+    recognition.start()
   }
 
-  function formatTime(ts) {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }
-
-  // Message is mine if from_username matches my username
   function isMine(msg) {
     if (msg.meta?.from_username) return msg.meta.from_username === myUsername
     return msg.client_id === session.client.id
   }
 
-  const initials = (str) => str ? str.slice(0, 2).toUpperCase() : '??'
+  function formatTime(ts) { return new Date(ts).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) }
+
+  function handleSwitch(username) {
+    switchClient(username)
+    navigate(`/chat/${contactUsername}`)
+  }
 
   return (
-    <div style={s.wrap}>
+    <div style={{ ...s.wrap, fontFamily: FONT }}>
+      <style>{`::placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; }`}</style>
+
+      {/* Stories row */}
+      {sessionList.length > 0 && (
+        <ClientStoriesRow
+          sessions={sessionList}
+          activeClient={myUsername}
+          onSwitch={handleSwitch}
+          onEnterCode={onEnterCode || (() => navigate('/inbox'))}
+        />
+      )}
+
+      {/* Header */}
       <div style={s.header}>
-        <button style={s.backBtn} onClick={() => navigate('/inbox')}>←</button>
-        <div style={{ ...s.avatar, background:'#1e2d4a', color:'#378add' }}>
-          {initials(otherUsername)}
-        </div>
+        <button style={s.backBtn} onClick={() => navigate('/inbox')}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        </button>
         <div style={s.headerInfo}>
-          <div style={s.headerHandle}>@{otherUsername}</div>
-          <div style={s.headerStatus}>online · 7am–11pm ET</div>
+          <GlowUsername username={otherUsername} size={18} />
         </div>
       </div>
 
-      <div style={s.threadBanner}>
-        👤 {session.user.full_name} · sending as @{myUsername} · relay responses to your client
+      <div style={{ ...s.threadBanner, fontFamily: MONO }}>
+        {session.user.full_name} · sending as @{myUsername}
       </div>
 
       <div style={s.messages}>
-        {messages.length === 0 && (
-          <div style={s.noMessages}>no messages yet — say hello!</div>
-        )}
+        {messages.length === 0 && <div style={{ ...s.noMessages, fontFamily: MONO }}>no messages yet — say hello!</div>}
         {messages.map(msg => {
           const mine = isMine(msg)
+          const isCopied = copiedId === msg.id
           return (
             <div key={msg.id} style={{ ...s.msgRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-              {!mine && (
-                <div style={{ ...s.msgAvatar, background:'#1e2d4a', color:'#378add' }}>
-                  {initials(otherUsername)}
-                </div>
-              )}
-              <div>
-                {editingId === msg.id ? (
-                  <div style={s.editWrap}>
-                    <input style={s.editInput} value={editContent}
-                      onChange={e => setEditContent(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleEdit(msg.id)}
-                      autoFocus />
-                    <button style={s.editSave} onClick={() => handleEdit(msg.id)}>save</button>
-                    <button style={s.editCancel} onClick={() => setEditingId(null)}>cancel</button>
-                  </div>
-                ) : (
-                  <div style={{ ...s.bubble, ...(mine ? s.bubbleMine : s.bubbleTheirs) }}
-                    onDoubleClick={() => { if (mine) { setEditingId(msg.id); setEditContent(msg.content) } }}>
-                    {msg.content}
+              <div style={{ maxWidth:'78%' }}>
+                {!mine && (
+                  <div style={{ marginBottom:4 }}>
+                    <GlowUsername username={otherUsername} size={11} />
                   </div>
                 )}
-                <div style={{ ...s.msgTime, textAlign: mine ? 'right' : 'left' }}>
-                  {formatTime(msg.created_at)}
-                  {msg.is_edited && <span style={{ color:'#333' }}> · edited</span>}
-                  {msg.is_transcribed && <span style={{ color:'#0f6e56' }}> 🎤</span>}
+                {editingId === msg.id ? (
+                  <div style={s.editWrap}>
+                    <input style={{ ...s.editInput, fontFamily: FONT }} value={editContent}
+                      onChange={e => setEditContent(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleEdit(msg.id)} autoFocus />
+                    <button style={{ ...s.editSave, fontFamily: MONO }} onClick={() => handleEdit(msg.id)}>save</button>
+                    <button style={{ ...s.editCancel, fontFamily: MONO }} onClick={() => setEditingId(null)}>cancel</button>
+                  </div>
+                ) : (
+                  <div style={{ display:'flex', alignItems:'flex-end', gap:6, flexDirection: mine ? 'row-reverse' : 'row' }}>
+                    <div style={{ ...s.bubble, ...(mine ? s.bubbleMine : s.bubbleTheirs) }}
+                      onDoubleClick={() => { if (mine) { setEditingId(msg.id); setEditContent(msg.content) } }}>
+                      {msg.content}
+                    </div>
+                    {/* Copy button */}
+                    <button style={s.copyBtn} onClick={() => handleCopy(msg.id, msg.content)} title="Copy message">
+                      {isCopied ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      ) : (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                      )}
+                    </button>
+                  </div>
+                )}
+                <div style={{ ...s.msgMeta, justifyContent: mine ? 'flex-end' : 'flex-start', fontFamily: MONO }}>
+                  <span style={s.msgTime}>{formatTime(msg.created_at)}</span>
+                  {msg.is_edited && <span style={s.msgEdited}>edited</span>}
+                  {msg.is_transcribed && <span>🎤</span>}
                   {mine && !editingId && (
-                    <span>
-                      {' '}·{' '}
+                    <>
                       <span style={s.actionLink} onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}>edit</span>
-                      {' '}
                       <span style={{ ...s.actionLink, color:'#e24b4a' }} onClick={() => handleDelete(msg.id)}>delete</span>
-                    </span>
+                    </>
                   )}
                 </div>
               </div>
-              {mine && (
-                <div style={{ ...s.msgAvatar, background:'#1e6a4a', color:'#5dcaa5' }}>
-                  {initials(myUsername)}
-                </div>
-              )}
             </div>
           )
         })}
         <div ref={messagesEndRef} />
       </div>
 
-      {canSend && (
+      {canSend ? (
         <div style={s.inputRow}>
           <div style={s.inputWrap}>
-            <textarea style={s.input} placeholder="message..." value={input} rows={1}
+            <textarea style={{ ...s.input, fontFamily: FONT }} placeholder="message..." value={input} rows={1}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }} />
-            <button style={{ ...s.micBtn, color: recording ? '#e24b4a' : '#555' }} onClick={handleMic}>🎤</button>
+            {input.length > 0 && (
+              <button style={s.clearBtn} onClick={() => setInput('')}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#888aa0" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            )}
+            <button style={{ ...s.micBtn, color: recording ? '#e24b4a' : '#888aa0' }} onClick={handleMic}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 10c0 3.866 3.134 7 7 7s7-3.134 7-7M12 17v4M8 21h8"/>
+              </svg>
+            </button>
           </div>
-          <button style={s.sendBtn} onClick={() => handleSend()}>➤</button>
+          <button style={s.sendBtn} onClick={() => handleSend()}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" strokeWidth="2.5" strokeLinecap="round"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>
+          </button>
         </div>
+      ) : (
+        <div style={{ ...s.readOnlyBar, fontFamily: MONO }}>read only · you cannot send messages</div>
       )}
-      {!canSend && <div style={s.readOnlyBar}>read only · you cannot send messages</div>}
     </div>
   )
 }
 
 const s = {
-  wrap: { background:'#0e0e10', minHeight:'100vh', display:'flex', flexDirection:'column', fontFamily:"'Syne',sans-serif", color:'#f0ede6', maxWidth:480, margin:'0 auto' },
-  header: { padding:'14px 16px 12px', borderBottom:'0.5px solid #1e1e22', display:'flex', alignItems:'center', gap:12, flexShrink:0 },
-  backBtn: { background:'none', border:'none', color:'#1d9e75', fontSize:20, cursor:'pointer' },
-  avatar: { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:600, flexShrink:0 },
+  wrap: { background: BG, minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', maxWidth:480, margin:'0 auto' },
+  header: { padding:'14px 20px 12px', borderBottom:`0.5px solid ${BORDER}`, display:'flex', alignItems:'center', gap:14, flexShrink:0 },
+  backBtn: { background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', flexShrink:0 },
   headerInfo: { flex:1 },
-  headerHandle: { fontSize:15, fontWeight:600 },
-  headerStatus: { fontSize:11, color:'#1d9e75', fontFamily:"'DM Mono',monospace" },
-  threadBanner: { background:'#13201a', borderBottom:'0.5px solid #1a2e22', padding:'6px 16px', fontSize:10, fontFamily:"'DM Mono',monospace", color:'#0f6e56', flexShrink:0 },
-  messages: { flex:1, overflowY:'auto', padding:16, display:'flex', flexDirection:'column', gap:12 },
-  noMessages: { textAlign:'center', color:'#333', fontSize:12, fontFamily:"'DM Mono',monospace", marginTop:40 },
+  threadBanner: { background:'#1a1600', borderBottom:'0.5px solid #F5C51820', padding:'6px 20px', fontSize:11, color:'#F5C51880', flexShrink:0 },
+  messages: { flex:1, overflowY:'auto', padding:'16px 20px', display:'flex', flexDirection:'column', gap:12 },
+  noMessages: { textAlign:'center', color:'#444', fontSize:13, marginTop:40 },
   msgRow: { display:'flex', gap:8, alignItems:'flex-end' },
-  msgAvatar: { width:26, height:26, borderRadius:'50%', fontSize:10, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  bubble: { padding:'9px 13px', borderRadius:16, fontSize:13, lineHeight:1.5, maxWidth:260 },
-  bubbleMine: { background:'#1d9e75', color:'#e1f5ee', borderBottomRightRadius:4 },
-  bubbleTheirs: { background:'#1a1a1e', color:'#d8d5ce', border:'0.5px solid #2a2a2e', borderBottomLeftRadius:4 },
-  msgTime: { fontSize:9, color:'#444', fontFamily:"'DM Mono',monospace", marginTop:3, padding:'0 4px' },
-  actionLink: { color:'#1d9e75', cursor:'pointer', textDecoration:'underline' },
-  editWrap: { display:'flex', gap:6, alignItems:'center' },
-  editInput: { background:'#1a1a1e', border:'0.5px solid #1d9e75', borderRadius:8, color:'#f0ede6', padding:'6px 10px', fontSize:13, fontFamily:"'Syne',sans-serif", outline:'none', width:200 },
-  editSave: { background:'#1d9e75', border:'none', color:'#04342c', fontSize:11, fontFamily:"'DM Mono',monospace", padding:'4px 10px', borderRadius:5, cursor:'pointer' },
-  editCancel: { background:'none', border:'none', color:'#555', fontSize:11, fontFamily:"'DM Mono',monospace", cursor:'pointer' },
-  inputRow: { padding:'10px 12px 16px', borderTop:'0.5px solid #1e1e22', display:'flex', alignItems:'flex-end', gap:8, flexShrink:0 },
-  inputWrap: { flex:1, background:'#1a1a1e', border:'0.5px solid #2a2a2e', borderRadius:20, display:'flex', alignItems:'center', padding:'8px 14px', gap:8 },
-  input: { flex:1, background:'none', border:'none', outline:'none', color:'#f0ede6', fontSize:14, fontFamily:"'Syne',sans-serif", resize:'none', maxHeight:80, lineHeight:1.4 },
-  micBtn: { background:'none', border:'none', cursor:'pointer', fontSize:17, display:'flex', alignItems:'center' },
-  sendBtn: { width:38, height:38, borderRadius:'50%', background:'#1d9e75', border:'none', cursor:'pointer', color:'#04342c', fontSize:17, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  readOnlyBar: { padding:'12px 16px', borderTop:'0.5px solid #1e1e22', textAlign:'center', fontSize:11, fontFamily:"'DM Mono',monospace", color:'#444', flexShrink:0 }
+  bubble: { padding:'11px 15px', borderRadius:18, fontSize:15, lineHeight:1.6, fontFamily: FONT },
+  bubbleMine: { background:'#F5C518', color:'#111114', borderBottomRightRadius:4, fontWeight:500 },
+  bubbleTheirs: { background: CARD, color:'#fff', border:`0.5px solid ${BORDER}`, borderBottomLeftRadius:4 },
+  copyBtn: { background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', alignItems:'center', opacity:0.6, flexShrink:0, marginBottom:4 },
+  msgMeta: { display:'flex', alignItems:'center', gap:8, marginTop:4, padding:'0 4px' },
+  msgTime: { fontSize:10, color:'#444' },
+  msgEdited: { fontSize:10, color:'#444' },
+  actionLink: { fontSize:10, color:'#F5C518', cursor:'pointer' },
+  editWrap: { display:'flex', gap:8, alignItems:'center' },
+  editInput: { background: CARD, border:`1px solid #F5C518`, borderRadius:10, color:'#fff', padding:'8px 12px', fontSize:14, outline:'none', width:200 },
+  editSave: { background:'#F5C518', border:'none', color:'#111114', fontSize:11, padding:'5px 12px', borderRadius:6, cursor:'pointer', fontWeight:600 },
+  editCancel: { background:'none', border:'none', color:'#888aa0', fontSize:11, cursor:'pointer' },
+  inputRow: { padding:'10px 16px 22px', borderTop:`0.5px solid ${BORDER}`, display:'flex', alignItems:'flex-end', gap:10, flexShrink:0 },
+  inputWrap: { flex:1, background: CARD, border:`0.5px solid ${BORDER}`, borderRadius:22, display:'flex', alignItems:'center', padding:'9px 14px', gap:8 },
+  input: { flex:1, background:'none', border:'none', outline:'none', color:'#fff', fontSize:15, fontWeight:200, resize:'none', maxHeight:100, lineHeight:1.5, caretColor:'#F5C518' },
+  clearBtn: { background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', padding:'0 2px', flexShrink:0 },
+  micBtn: { background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', flexShrink:0 },
+  sendBtn: { width:44, height:44, borderRadius:'50%', background:'#F5C518', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
+  readOnlyBar: { padding:'14px 20px', borderTop:`0.5px solid ${BORDER}`, textAlign:'center', fontSize:12, color:'#444', flexShrink:0 }
 }
