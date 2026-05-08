@@ -8,9 +8,9 @@ export default function ClientSelector({ onAddClient }) {
   const navigate = useNavigate()
 
   const avatarColors = [
-    ['#2a1f05','#F5C518'],['#1a1f2e','#85b7eb'],
-    ['#1e2a1e','#5dcaa5'],['#2a1a1e','#d85a30'],
-    ['#221a2e','#d4537e'],['#1a2535','#85b7eb']
+    ['#1a1c3a','#818cf8'],['#0f2030','#60a5fa'],
+    ['#0f2a1e','#4ade80'],['#1e1630','#a78bfa'],
+    ['#221a2e','#38bdf8'],['#1a2535','#818cf8']
   ]
   const colorFor = (str) => avatarColors[(str||'').charCodeAt(0) % avatarColors.length]
   const initials = (str) => str ? str.slice(0,2).toUpperCase() : '??'

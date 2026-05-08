@@ -6,9 +6,9 @@ import { GlowUsername } from './PublicLanding'
 
 const FONT = "'Clarity City','DM Mono',sans-serif"
 const MONO = "'DM Mono',monospace"
-const BG = '#111114'
-const CARD = '#1a1a1e'
-const BORDER = '#252528'
+const BG = '#0d0f1a'
+const CARD = '#131628'
+const BORDER = '#1e2240'
 
 // Stories-style client row
 export function ClientStoriesRow({ sessions, activeClient, onSwitch, onEnterCode }) {
@@ -16,9 +16,9 @@ export function ClientStoriesRow({ sessions, activeClient, onSwitch, onEnterCode
   return (
     <div style={s.storiesWrap}>
       <style>{`
-        @keyframes amberPulse {
-          0%,100% { box-shadow: 0 0 0 2px rgba(245,197,24,0.4), 0 0 8px rgba(245,197,24,0.2); }
-          50% { box-shadow: 0 0 0 2px rgba(245,197,24,0.9), 0 0 16px rgba(245,197,24,0.5), 0 0 28px rgba(245,197,24,0.2); }
+        @keyframes indigoPulse {
+          0%,100% { box-shadow: 0 0 0 2px rgba(129,140,248,0.4), 0 0 8px rgba(129,140,248,0.2); }
+          50% { box-shadow: 0 0 0 2px rgba(129,140,248,0.9), 0 0 16px rgba(129,140,248,0.5), 0 0 28px rgba(129,140,248,0.2); }
         }
         @keyframes greyPulse {
           0%,100% { box-shadow: 0 0 0 2px rgba(80,80,80,0.4); }
@@ -34,17 +34,17 @@ export function ClientStoriesRow({ sessions, activeClient, onSwitch, onEnterCode
               onClick={() => !isExpired && onSwitch(session.client.username, navigate)}>
               <div style={{
                 ...s.storyCircle,
-                animation: isExpired ? 'greyPulse 3s ease-in-out infinite' : 'amberPulse 2.5s ease-in-out infinite',
+                animation: isExpired ? 'greyPulse 3s ease-in-out infinite' : 'indigoPulse 2.5s ease-in-out infinite',
                 opacity: isExpired ? 0.4 : 1,
                 cursor: isExpired ? 'not-allowed' : 'pointer',
-                background: isActive ? '#2a1f05' : CARD,
+                background: isActive ? '#1a1c3a' : CARD,
               }}>
-                <span style={{ ...s.storyInitials, color: isExpired ? '#555' : '#F5C518' }}>
+                <span style={{ ...s.storyInitials, color: isExpired ? '#555' : '#ffffff' }}>
                   {session.client.username.slice(0,2).toUpperCase()}
                 </span>
                 {isActive && <div style={s.activeIndicator} />}
               </div>
-              <div style={{ ...s.storyUsername, color: isExpired ? '#444' : isActive ? '#F5C518' : '#888aa0', fontFamily: MONO }}>
+              <div style={{ ...s.storyUsername, color: isExpired ? '#444' : isActive ? '#818cf8' : '#888aa0', fontFamily: MONO }}>
                 @{session.client.username}
               </div>
             </div>

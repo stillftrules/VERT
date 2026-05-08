@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase'
 
 const FONT = "'Clarity City', 'DM Mono', sans-serif"
 const MONO = "'DM Mono', monospace"
-const BG = '#111114'
-const CARD = '#1a1a1e'
-const BORDER = '#252528'
+const BG = '#0d0f1a'
+const CARD = '#131628'
+const BORDER = '#1e2240'
 
 export default function PublicLanding({ onEnterCode }) {
   const [view, setView] = useState('home')
@@ -25,7 +25,7 @@ export default function PublicLanding({ onEnterCode }) {
   const idRefs = useRef([])
 
   const initials = (str) => str ? str.slice(0,2).toUpperCase() : '??'
-  const avatarColors = [['#2a1f05','#F5C518'],['#1a1f2e','#85b7eb'],['#1e2a1e','#5dcaa5'],['#2a1a1e','#d85a30'],['#221a2e','#d4537e']]
+  const avatarColors = [['#1a1c3a','#818cf8'],['#0f2030','#60a5fa'],['#0f2a1e','#4ade80'],['#1e1630','#a78bfa'],['#1a2030','#38bdf8']]
   const colorFor = (str) => avatarColors[(str||'').charCodeAt(0) % avatarColors.length]
   const neu = { card: '5px 5px 12px #0a0a0c, -2px -2px 6px #1c1c20' }
 
@@ -161,7 +161,7 @@ export default function PublicLanding({ onEnterCode }) {
           <div style={s.pageTitle}>Request Access</div>
           <div style={{ ...s.pageSub, fontFamily: MONO }}>Search for a client username</div>
           <div style={{ ...s.searchBar, boxShadow: neu.card }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F5C518" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             <input style={{ ...s.searchInput, fontFamily: MONO }} placeholder="search username..." value={search} onChange={e => doSearch(e.target.value)} autoFocus />
           </div>
           {searching && <div style={{ ...s.hint, fontFamily: MONO }}>searching...</div>}
@@ -292,13 +292,13 @@ export function GlowUsername({ username, size = 17, showAt = true }) {
   return (
     <div style={{ display:'inline-flex', alignItems:'center', position:'relative' }}>
       <style>{`
-        @keyframes amberPulse {
+        @keyframes indigoPulse {
           0%, 100% { text-shadow: 0 0 6px rgba(245,197,24,0.3), 0 0 12px rgba(245,197,24,0.15); }
           50% { text-shadow: 0 0 12px rgba(245,197,24,0.7), 0 0 24px rgba(245,197,24,0.4), 0 0 40px rgba(245,197,24,0.2); }
         }
         .glow-username {
-          animation: amberPulse 2.8s ease-in-out infinite;
-          color: #F5C518;
+          animation: indigoPulse 2.8s ease-in-out infinite;
+          color: #818cf8;
           font-family: 'DM Mono', monospace;
           font-weight: 600;
           letter-spacing: 0.02em;
@@ -328,7 +328,7 @@ const s = {
   cardTitle: { fontSize:16, fontWeight:700, color:'#ffffff', marginBottom:4 },
   cardSub: { fontSize:13, color:'#888aa0' },
   cardArrow: { fontSize:20, color:'#F5C518', flexShrink:0 },
-  backLink: { background:'none', border:'none', color:'#F5C518', fontSize:14, cursor:'pointer', padding:0, textAlign:'left' },
+  backLink: { background:'none', border:'none', color:'#818cf8', fontSize:14, cursor:'pointer', padding:0, textAlign:'left' },
   pageTitle: { fontSize:24, fontWeight:700, color:'#ffffff', marginBottom:4 },
   pageSub: { fontSize:13, color:'#888aa0', marginBottom:4 },
   searchBar: { background:CARD, border:`0.5px solid ${BORDER}`, borderRadius:14, display:'flex', alignItems:'center', gap:10, padding:'12px 16px' },
@@ -339,19 +339,19 @@ const s = {
   resultName: { fontSize:13, color:'#888aa0', fontFamily: MONO, marginTop:3 },
   formCard: { background:CARD, border:`0.5px solid ${BORDER}`, borderRadius:16, padding:18 },
   formLabel: { fontSize:10, color:'#888aa0', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6 },
-  formInput: { background:'#111114', border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#ffffff', fontSize:15, fontWeight:200, padding:'11px 14px', width:'100%', outline:'none', marginBottom:14, display:'block', boxSizing:'border-box', caretColor:'#F5C518' },
+  formInput: { background:'rgba(13,15,26,0.8)', border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#ffffff', fontSize:15, fontWeight:200, padding:'11px 14px', width:'100%', outline:'none', marginBottom:14, display:'block', boxSizing:'border-box', caretColor:'#818cf8' },
   formTextarea: { background:'#111114', border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#ffffff', fontSize:15, fontWeight:200, padding:'11px 14px', width:'100%', outline:'none', marginBottom:14, display:'block', boxSizing:'border-box', resize:'none', lineHeight:1.5, caretColor:'#F5C518' },
   usernameRow: { display:'flex', alignItems:'center', background:'#111114', border:`0.5px solid ${BORDER}`, borderRadius:8, marginBottom:6, overflow:'hidden' },
-  atSign: { padding:'11px 8px 11px 14px', color:'#F5C518', fontSize:16, fontWeight:700, flexShrink:0, fontFamily:"'DM Mono',monospace" },
+  atSign: { padding:'11px 8px 11px 14px', color:'#818cf8', fontSize:16, fontWeight:700, flexShrink:0, fontFamily:"'DM Mono',monospace" },
   usernameInput: { border:'none', borderRadius:0, marginBottom:0, background:'transparent', paddingLeft:4 },
   availMsg: { fontSize:11, marginBottom:8, fontWeight:500 },
   idRow: { display:'flex', alignItems:'center', gap:6, marginBottom:6 },
-  idBox: { width:38, height:46, background:'#111114', border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#F5C518', fontSize:18, fontWeight:700, textAlign:'center', outline:'none', padding:0 },
+  idBox: { width:38, height:46, background:'#111114', border:`0.5px solid ${BORDER}`, borderRadius:8, color:'#818cf8', fontSize:18, fontWeight:700, textAlign:'center', outline:'none', padding:0 },
   idDash: { color:'#444', fontSize:18, fontWeight:300, flexShrink:0 },
   idHint: { fontSize:10, color:'#444', marginBottom:4 },
   primaryBtn: { background:'#F5C518', border:'none', color:'#111114', fontSize:16, fontWeight:700, padding:'13px', borderRadius:12, cursor:'pointer', width:'100%', display:'block', marginTop:4 },
   centeredBody: { flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 32px', textAlign:'center', gap:16 },
-  successIcon: { width:64, height:64, borderRadius:'50%', background:'#2a1f05', border:'2px solid #F5C518', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, color:'#F5C518' },
+  successIcon: { width:64, height:64, borderRadius:'50%', background:'#1a1c3a', border:'2px solid #818cf8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:28, color:'#818cf8' },
   successTitle: { fontSize:24, fontWeight:700, color:'#ffffff' },
   successSub: { fontSize:14, color:'#888aa0', lineHeight:1.6 },
 }

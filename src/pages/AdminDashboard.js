@@ -7,9 +7,9 @@ import { adminLogout } from '../components/AdminLogin'
 
 const FONT = "'Clarity City','DM Mono',sans-serif"
 const MONO = "'DM Mono',monospace"
-const BG = '#111114'
-const CARD = '#1a1a1e'
-const BORDER = '#252528'
+const BG = '#0d0f1a'
+const CARD = '#131628'
+const BORDER = '#1e2240'
 const NEU_CARD = '6px 6px 14px #0a0a0c, -3px -3px 8px #1e1e22'
 const NEU_SM = '4px 4px 8px #0a0a0c, -2px -2px 6px #1e1e22'
 
@@ -162,9 +162,9 @@ export default function AdminDashboard() {
   async function generateAndDispatch() {
     if (!selectedClient || selectedUsers.length === 0) return
     setDispatching(true); setDispatchResult([])
-    const today = new Date()
-    const [h, m] = expireTime.split(':')
-    const expiresAt = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), parseInt(h) + 4, parseInt(m)))
+    // Always expire at 7:00 AM ET next morning (11:00 UTC)
+    const now = new Date()
+    const expiresAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 11, 0, 0))
     const results = []
     for (const userId of selectedUsers) {
       const user = clientUsers.find(u => u.id === userId)
@@ -571,13 +571,6 @@ export default function AdminDashboard() {
                   ))}
                   {clientUsers.length > 0 && (
                     <>
-                      <div style={{ ...s.panelTitle2, fontFamily: MONO, marginTop:14 }}>step 3 · expiry time</div>
-                      <select style={{ ...s.formInput, fontFamily: MONO }} value={expireTime} onChange={e => setExpireTime(e.target.value)}>
-                        <option value="18:00">6:00 PM ET</option>
-                        <option value="20:00">8:00 PM ET</option>
-                        <option value="23:00">11:00 PM ET</option>
-                        <option value="23:59">midnight ET</option>
-                      </select>
                       <button style={{ ...s.addBtn, width:'100%', marginTop:12, padding:12, opacity: selectedUsers.length === 0 || dispatching ? 0.4 : 1, boxShadow: NEU_SM }}
                         disabled={selectedUsers.length === 0 || dispatching} onClick={generateAndDispatch}>
                         {dispatching ? 'dispatching...' : `generate & send to ${selectedUsers.length} user${selectedUsers.length !== 1 ? 's' : ''}`}

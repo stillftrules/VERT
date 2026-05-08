@@ -15,8 +15,15 @@ export function AuthProvider({ children }) {
     if (stored) {
       const parsed = JSON.parse(stored)
       const valid = {}
+      // Also expire any session if current time is past 7am ET (11:00 UTC)
+      const now = new Date()
+      const todayExpiry = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 11, 0, 0))
       Object.entries(parsed).forEach(([key, s]) => {
-        if (new Date(s.expiresAt) > new Date()) valid[key] = s
+        const sessionExpiry = new Date(s.expiresAt)
+        // Expire if past the stored expiry OR if past 7am ET today and session is from a previous day
+        const sessionDate = new Date(s.expiresAt)
+        const isFromToday = sessionDate.toUTCString().slice(0,16) === todayExpiry.toUTCString().slice(0,16)
+        if (new Date(s.expiresAt) > new Date() && !(now > todayExpiry && !isFromToday)) valid[key] = s
       })
       setSessions(valid)
       localStorage.setItem(SESSIONS_KEY, JSON.stringify(valid))
