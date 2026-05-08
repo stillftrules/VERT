@@ -1,5 +1,5 @@
 // ============================================
-// VERT - Notification Delivery Service
+// BANQO - Notification Delivery Service
 // Routes through Supabase Edge Function
 // ============================================
 

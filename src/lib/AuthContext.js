@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
-const SESSIONS_KEY = 'vert_sessions'
-const ACTIVE_CLIENT_KEY = 'vert_active_client'
+const SESSIONS_KEY = 'banqo_sessions'
+const ACTIVE_CLIENT_KEY = 'banqo_active_client'
 
 export function AuthProvider({ children }) {
   const [sessions, setSessions] = useState({})
