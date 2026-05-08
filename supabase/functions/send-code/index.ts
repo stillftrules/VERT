@@ -33,7 +33,7 @@ serve(async (req) => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          sender: { name: 'Vert', email: Deno.env.get('BREVO_FROM_EMAIL') },
+          sender: { name: 'Banqo', email: Deno.env.get('BREVO_FROM_EMAIL') },
           to: [{ email: user.contact, name: user.full_name }],
           subject: `Your Vert access code: ${code}`,
           htmlContent: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0e0e10;color:#f0ede6;padding:32px;border-radius:12px;"><div style="margin-bottom:24px;"><span style="font-size:20px;font-weight:700;color:#f0ede6;">Vert</span></div><p style="color:#888;font-size:14px;margin-bottom:8px;">Hi ${user.full_name},</p><p style="color:#888;font-size:14px;margin-bottom:24px;">Your access code for today is ready.</p><div style="background:#13201a;border:1px solid #1d9e75;border-radius:10px;padding:24px;text-align:center;margin-bottom:24px;"><div style="font-size:40px;font-weight:700;letter-spacing:0.3em;color:#5dcaa5;font-family:monospace;">${code}</div></div><table style="width:100%;font-size:12px;color:#555;font-family:monospace;margin-bottom:24px;"><tr><td style="padding:4px 0;">Acting as</td><td style="text-align:right;color:#f0ede6;">@${clientUsername}</td></tr><tr><td style="padding:4px 0;">Permission</td><td style="text-align:right;color:#f0ede6;">${permissionLabel}</td></tr><tr><td style="padding:4px 0;">Expires</td><td style="text-align:right;color:#f0ede6;">${expiry} ET</td></tr></table><p style="color:#444;font-size:11px;font-family:monospace;text-align:center;">Do not share this code. It expires automatically.</p></div>`
