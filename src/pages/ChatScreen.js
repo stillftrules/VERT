@@ -23,6 +23,7 @@ export default function ChatScreen({ onEnterCode }) {
   const [editContent, setEditContent] = useState('')
   const [recording, setRecording] = useState(false)
   const [copiedId, setCopiedId] = useState(null)
+  const [showSidebar, setShowSidebar] = useState(false)
   const messagesEndRef = useRef(null)
   const channelRef = useRef(null)
 
@@ -127,28 +128,72 @@ export default function ChatScreen({ onEnterCode }) {
     <div style={{ ...s.wrap, fontFamily: FONT }}>
       <style>{`::placeholder { color: rgba(136,138,160,0.3) !important; font-weight: 200 !important; }`}</style>
 
-      {/* Stories row */}
-      {sessionList.length > 0 && (
-        <ClientStoriesRow
-          sessions={sessionList}
-          activeClient={myUsername}
-          onSwitch={handleSwitch}
-          onEnterCode={onEnterCode || (() => navigate('/inbox'))}
-        />
+      {/* Sidebar overlay */}
+      {showSidebar && (
+        <div style={s.sideOverlay} onClick={() => setShowSidebar(false)}>
+          <div style={s.sidebar} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'20px 16px 12px', borderBottom:`1px solid ${BORDER}` }}>
+              <div style={{ fontSize:11, color:'#555', fontFamily: MONO, letterSpacing:'0.12em', textTransform:'uppercase' }}>switch client</div>
+            </div>
+            {sessionList.map(s2 => {
+              const isActive = s2.client.username === myUsername
+              const isExpired = new Date(s2.expiresAt) < new Date()
+              return (
+                <div key={s2.client.username}
+                  style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px',
+                    background: isActive ? 'rgba(29,155,240,0.08)' : 'transparent',
+                    borderLeft: isActive ? '3px solid #1d9bf0' : '3px solid transparent',
+                    cursor: isExpired ? 'not-allowed' : 'pointer',
+                    opacity: isExpired ? 0.4 : 1 }}
+                  onClick={() => {
+                    if (!isExpired) {
+                      switchClient(s2.client.username)
+                      setShowSidebar(false)
+                      navigate(`/chat/${contactUsername}`)
+                    }
+                  }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background: isActive ? '#0f2030' : '#1a1c2e',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    border: isActive ? '1.5px solid #1d9bf0' : `1px solid ${BORDER}` }}>
+                    <span style={{ color: isActive ? '#1d9bf0' : '#888aa0', fontSize:13, fontWeight:700, fontFamily: MONO }}>
+                      {s2.client.username.slice(0,2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <div style={{ color: isActive ? '#1d9bf0' : '#ffffff', fontSize:14, fontWeight:600, fontFamily: MONO }}>
+                      @{s2.client.username}
+                    </div>
+                    <div style={{ color:'#555', fontSize:11, fontFamily: MONO, marginTop:2 }}>
+                      {isExpired ? 'expired' : s2.permission?.replace('_', ' ')}
+                    </div>
+                  </div>
+                  {isActive && <div style={{ marginLeft:'auto', width:7, height:7, borderRadius:'50%', background:'#1d9bf0' }} />}
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {/* Header */}
       <div style={s.header}>
         <button style={s.backBtn} onClick={() => navigate('/inbox')}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F5C518" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
         </button>
         <div style={s.headerInfo}>
-          <GlowUsername username={otherUsername} size={18} />
+          <div style={{ display:'flex', alignItems:'center', gap:8, fontFamily: MONO }}>
+            <span style={{ color:'#1d9bf0', fontSize:15, fontWeight:700 }}>@{myUsername}</span>
+            <span style={{ color:'#444', fontSize:15 }}>→</span>
+            <span style={{ color:'#1d9bf0', fontSize:15, fontWeight:700 }}>@{otherUsername}</span>
+          </div>
         </div>
-      </div>
-
-      <div style={{ ...s.threadBanner, fontFamily: MONO }}>
-        <span style={{color:'#7dd3a8', fontFamily:"'DM Mono',monospace", fontSize:12}}>{session.user.full_name}</span><span style={{color:'#555', fontSize:12}}> · sending as </span><GlowUsername username={myUsername} size={12} />
+        {sessionList.length > 1 && (
+          <button style={s.sidebarBtn} onClick={() => setShowSidebar(v => !v)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="3" width="7" height="18" rx="1"/><path d="M14 7h7M14 12h7M14 17h7"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       <div style={s.messages}>
@@ -159,11 +204,7 @@ export default function ChatScreen({ onEnterCode }) {
           return (
             <div key={msg.id} style={{ ...s.msgRow, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
               <div style={{ maxWidth:'78%' }}>
-                {!mine && (
-                  <div style={{ marginBottom:4 }}>
-                    <GlowUsername username={otherUsername} size={11} />
-                  </div>
-                )}
+
                 {editingId === msg.id ? (
                   <div style={s.editWrap}>
                     <input style={{ ...s.editInput, fontFamily: FONT }} value={editContent}
@@ -235,6 +276,9 @@ export default function ChatScreen({ onEnterCode }) {
 }
 
 const s = {
+  sideOverlay: { position:'fixed', inset:0, zIndex:100, background:'rgba(0,0,0,0.6)', display:'flex' },
+  sidebar: { width:220, height:'100%', background:'#0d0f1a', borderRight:`1px solid ${BORDER}`, display:'flex', flexDirection:'column', overflowY:'auto' },
+  sidebarBtn: { marginLeft:'auto', background:'none', border:'none', color:'#888aa0', cursor:'pointer', padding:6, display:'flex', alignItems:'center' },
   wrap: { background: BG, minHeight:'100vh', display:'flex', flexDirection:'column', color:'#fff', maxWidth:480, margin:'0 auto' },
   header: { padding:'14px 20px 12px', borderBottom:`0.5px solid ${BORDER}`, display:'flex', alignItems:'center', gap:14, flexShrink:0 },
   backBtn: { background:'none', border:'none', cursor:'pointer', padding:4, display:'flex', flexShrink:0 },
